@@ -1,0 +1,6 @@
+name: Synthetic
+selected_classes: []
+in_features: 64
+n_train_samples: 1000
+n_val_samples: 200
+n_test_samples: 200

@@ -1,0 +1,4 @@
+class_name: MLPClassifier
+architecture:
+  hidden_dims: [256, 128]
+  dropout_rate: 0.0

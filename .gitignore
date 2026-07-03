@@ -1,0 +1,11 @@
+**/__pycache__
+*pyc
+experiments*/
+optimization_db/
+outputs/
+.agent/
+.env
+.idea/
+.vscode/
+wandb
+uv.lock

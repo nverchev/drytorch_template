@@ -1,0 +1,20 @@
+# User settings
+
+seed:  # random seed (null = unset)
+
+# Compute
+cpu: false
+n_workers: 0
+n_subprocesses: 0  # 0 disables DDP
+
+# Checkpointing
+checkpoint_every: 100
+load: 0  # -1 loads the latest checkpoint
+
+# Trackers
+trackers:
+  hydra: true
+  tensorboard: false
+  wandb: false
+  sqlalchemy: false
+  csv: true

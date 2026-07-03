@@ -1,0 +1,5 @@
+defaults:
+  - dataset: synthetic
+  - _self_
+
+# ADAPT — add cross-dataset preprocessing settings here.

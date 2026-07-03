@@ -1,0 +1,22 @@
+batch_size: 64
+n_epochs: 10
+_n_subprocesses: ${user.n_subprocesses}
+
+early_stopping:
+  active: false
+  window: 5
+  patience: 20
+
+learn:
+  optimizer_name: AdamW
+  learning_rate: 1e-3
+  opt_settings:
+    weight_decay: 1e-4
+
+  scheduler:
+    function: Cosine
+    restart_interval: 0
+    restart_fraction: 1.0
+    warmup_steps: 0
+    settings:
+      decay_steps: ${classification.train.n_epochs}

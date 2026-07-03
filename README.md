@@ -1,5 +1,10 @@
 # drytorch-template
 
+[![Python](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![basedpyright - checked](https://img.shields.io/badge/basedpyright-checked-ffc000)](https://docs.basedpyright.com)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
 A project template for the [drytorch](https://github.com/nverchev/drytorch) ML experimentation library.
 
 Out of the box it runs a synthetic tabular classification task. The entire
@@ -91,5 +96,3 @@ Add parameter search spaces under `configs/tuning/experiment/tune/`.
 7. **`src/module/architectures.py`** — add new `BaseArchitecture` subclasses.
 8. **`src/train/loss.py`** — replace `get_loss` / `get_accuracy`.
 9. **`train.py`** — adjust the entry point to match your pipeline.
-
-For generative / multi-stage models, also adapt `src/module/flow.py`.

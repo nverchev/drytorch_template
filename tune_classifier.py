@@ -31,7 +31,7 @@ def set_objective(tune_cfg: DictConfig, subexp_name: str) -> Callable[[optuna.Tr
         """Set up the experiment and launch the training cycle."""
         overrides = suggest_overrides(tune_cfg, trial)
         actual_overrides = [o.replace('subexperiment.', f'{subexp_name}.') for o in overrides]
-        trial_cfg = get_config_all(actual_overrides)
+        trial_cfg = get_config_all(overrides=actual_overrides)
         getattr(trial_cfg, subexp_name).train.n_epochs = tune_cfg.n_epochs
         trial_cfg.user.seed = tune_cfg.seed
 

@@ -31,7 +31,7 @@ import torch
 from pydantic import Field, model_validator
 from pydantic.dataclasses import dataclass
 
-from src.config.environment import EnvSettings, VERSION, get_current_branch
+from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
 from src.config.torch import get_activation_cls, get_norm_cls, get_optim_cls, set_seed, DEFAULT_ACT, DEFAULT_NORM
 from src.config.options import GradOp, ClipCriterion, Schedulers, Models, Datasets
 
@@ -189,7 +189,7 @@ class LearningConfig:
 
     Attributes:
         optimizer_name: Name of a PyTorch optimiser, e.g. ``'AdamW'``.
-        learning_rate: Global learning rate (or per-parameter group base LR).
+        lr: Global learning rate (or per-parameter group base LR).
         scheduler: Learning-rate scheduler configuration.
         grad_op: Optional gradient pre-processing operation applied before
             each optimiser step (see :class:`~src.config.options.GradOp`).
@@ -199,7 +199,7 @@ class LearningConfig:
     """
 
     optimizer_name: str
-    learning_rate: PositiveFloat
+    lr: PositiveFloat
     scheduler: SchedulerConfig
     grad_op: GradOp | None = None
     clip_criterion: ClipCriterion | None = None
@@ -324,6 +324,7 @@ class PathSpecs:
     """Filesystem path specifications populated from environment variables.
 
     Attributes:
+        data_dir: Root directory holding the datasets, shared by all versions.
         root_exp_dir: Root directory under which all experiment artefacts are stored.
 
     Note:
@@ -331,6 +332,7 @@ class PathSpecs:
     """
 
     _env = EnvSettings()
+    data_dir: pathlib.Path = _env.data_dir
     root_exp_dir: pathlib.Path = _env.root_exp_dir
 
     @property
@@ -350,6 +352,7 @@ class UserSettings:
         trackers: Active experiment-tracking backends.
         seed: Global random seed for reproducibility. ``None`` leaves it unset.
         checkpoint_every: Save a model checkpoint every *n* epochs.
+        torch_compile: Whether to compile the model with torch.compile.
         load: Checkpoint epoch to resume from:``0`` skip; ``-1`` loads last checkpoint.
     """
 
@@ -359,6 +362,7 @@ class UserSettings:
     trackers: TrackerList
     seed: int | None
     checkpoint_every: PositiveInt
+    torch_compile: bool = True
     load: int = 0
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
@@ -424,5 +428,5 @@ class AllConfig:
 
     @property
     def project(self) -> str:
-        """Tracker project name"""
-        return f'DrytorchTemplate{self.version}'
+        """Tracker project name, one per version."""
+        return f'{PROJECT_NAME}-{self.version}'

@@ -10,7 +10,17 @@ from src.config import VERSION, ConfigPath
 from src.config.environment import get_current_branch
 
 
-def get_past_final_values(trial: optuna.Trial) -> list[float]:
+__all__ = [
+    'get_past_final_values',
+    'get_study_name',
+    'impute_failed_trial',
+    'impute_pruned_trial',
+    'log_study_settings',
+    'visualize_study',
+]
+
+
+def get_past_final_values(trial: optuna.Trial, /) -> list[float]:
     """Get final value from completed trials."""
     study = trial.study
     *past_trials, _current_trial = study.get_trials(deepcopy=False)
@@ -29,7 +39,7 @@ def get_past_final_values(trial: optuna.Trial) -> list[float]:
     return [trial.value for trial in real_completed_trials if trial.value is not None]
 
 
-def impute_pruned_trial(trial: optuna.Trial) -> float:
+def impute_pruned_trial(trial: optuna.Trial, /) -> float:
     """Input pruned trial with an interpolation from past completed trials' values."""
     past_final_values = get_past_final_values(trial)
     percentile = 75 if trial.study.direction == optuna.study.StudyDirection.MINIMIZE else 25
@@ -38,7 +48,7 @@ def impute_pruned_trial(trial: optuna.Trial) -> float:
     return float(imputed_value)
 
 
-def impute_failed_trial(trial: optuna.Trial) -> float:
+def impute_failed_trial(trial: optuna.Trial, /) -> float:
     """Input pruned trial with worse completed trials' value."""
     past_final_values = get_past_final_values(trial)
     worst_fn = min if trial.study.direction == optuna.study.StudyDirection.MAXIMIZE else max
@@ -70,7 +80,7 @@ def log_study_settings(study: optuna.Study, tune_cfg: DictConfig) -> None:
     return
 
 
-def visualize_study(study: optuna.Study, renderer: str) -> None:
+def visualize_study(study: optuna.Study, /, *, renderer: str = '') -> None:
     """Visualize the optimization study."""
     visualization.plot_optimization_history(study).show(renderer=renderer)
     visualization.plot_slice(study).show(renderer=renderer)
@@ -80,9 +90,9 @@ def visualize_study(study: optuna.Study, renderer: str) -> None:
     return
 
 
-def _remove_base_specification(override: str) -> str:
+def _remove_base_specification(override: str, /) -> str:
     return override.rsplit('.', maxsplit=1)[-1]
 
 
-def _remove_configuration_dir(override: str) -> str:
+def _remove_configuration_dir(override: str, /) -> str:
     return override.rsplit('/', maxsplit=1)[-1]

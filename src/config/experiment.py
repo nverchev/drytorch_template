@@ -11,13 +11,22 @@ from drytorch.core import tracking
 from drytorch.trackers import logging
 
 from src.config.specs import AllConfig
+from src.trackers import ClassificationLogger
+
+
+__all__ = [
+    'Experiment',
+    'get_trackers',
+    'set_tuning_logging',
+    'update_variation',
+]
 
 
 class Experiment(drytorch.Experiment[AllConfig]):
     """Specify specification class for configurations."""
 
 
-def get_trackers(cfg: AllConfig, debug_mode: bool) -> list[tracking.Tracker]:
+def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Tracker]:
     """Instantiate the experiment trackers requested in *cfg*.
 
     Trackers are only activated outside debug mode.  In debug mode an empty
@@ -35,6 +44,8 @@ def get_trackers(cfg: AllConfig, debug_mode: bool) -> list[tracking.Tracker]:
     cfg_hydra = cfg.user.hydra
     hydra_utils.configure_log(cfg_hydra.job_logging)
     drytorch.init_trackers(mode='hydra')
+    tracking.DEFAULT_TRACKERS.pop(logging.BuiltinLogger.__name__, None)
+    drytorch.extend_default_trackers([ClassificationLogger()])
     optional_tracker_list: list[tracking.Tracker] = []
     if debug_mode:
         return optional_tracker_list
@@ -43,9 +54,9 @@ def get_trackers(cfg: AllConfig, debug_mode: bool) -> list[tracking.Tracker]:
         try:
             import wandb  # ty:ignore[unresolved-import]
 
-            from drytorch.trackers.wandb import Wandb
+            from src.trackers.wandb import ClassificationWandb
 
-            optional_tracker_list.append(Wandb(settings=wandb.Settings(project=cfg.project)))
+            optional_tracker_list.append(ClassificationWandb(settings=wandb.Settings(project=cfg.project)))
         except ImportError as e:
             warnings.warn(f'Wandb not installed, skipping. {e}', stacklevel=2)
 
@@ -60,9 +71,14 @@ def get_trackers(cfg: AllConfig, debug_mode: bool) -> list[tracking.Tracker]:
         optional_tracker_list.append(CSVDumper())
 
     if cfg_trackers.tensorboard:
-        from drytorch.trackers.tensorboard import TensorBoard
+        try:
+            from src.trackers.tensorboard import ClassificationTensorBoard
 
-        optional_tracker_list.append(TensorBoard())
+        except ImportError as e:
+            warnings.warn(f'TensorBoard not installed, skipping. {e}', stacklevel=2)
+
+        else:
+            optional_tracker_list.append(ClassificationTensorBoard())
 
     if cfg_trackers.sqlalchemy:
         try:

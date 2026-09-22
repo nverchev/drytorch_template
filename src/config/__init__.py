@@ -3,10 +3,11 @@
 from src.config.specs import AllConfig
 from src.config.hydra import hydra_main, get_config_all
 from src.config.experiment import Experiment, get_trackers, set_tuning_logging
-from src.config.environment import VERSION, ConfigPath
+from src.config.environment import PROJECT_NAME, VERSION, ConfigPath
 from src.config.torch import ActClass, NormClass
 
 __all__ = [
+    'PROJECT_NAME',
     'VERSION',
     'ActClass',
     'AllConfig',

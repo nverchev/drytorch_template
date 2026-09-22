@@ -7,6 +7,14 @@ The string values are used as YAML keys so prefer lowercase underscore names.
 
 import enum
 
+__all__ = [
+    'ClipCriterion',
+    'Datasets',
+    'GradOp',
+    'Models',
+    'Schedulers',
+]
+
 
 # ---------------------------------------------------------------------------
 # Project Specific: Add choices for your project

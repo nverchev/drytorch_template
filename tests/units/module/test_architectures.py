@@ -11,28 +11,28 @@ from src.module.architectures import MLPClassifier, MLPResClassifier
 class TestMLPClassifier:
     """Test MLPClassifier forward pass and output dimensions."""
 
-    def test_mlp_classifier_forward(self, sample_batch) -> None:
+    def test_mlp_classifier_forward(self, sample_batch, n_classes) -> None:
         """Test MLPClassifier forward pass output shape."""
         inputs, _ = sample_batch
         cfg = Experiment.get_config()
         cfg.classification.model.class_name = Models.MLPClassifier
         model = MLPClassifier()
         out = model(inputs)
-        assert out.logits.shape == (8, 10)
+        assert out.logits.shape == (8, n_classes)
         return
 
 
 class TestMLPResClassifier:
     """Test MLPResClassifier forward pass and residual connections."""
 
-    def test_mlp_res_classifier_forward(self, sample_batch) -> None:
+    def test_mlp_res_classifier_forward(self, sample_batch, n_classes) -> None:
         """Test MLPResClassifier forward pass output shape."""
         inputs, _ = sample_batch
         cfg = Experiment.get_config()
         cfg.classification.model.class_name = Models.MLPResClassifier
         model = MLPResClassifier()
         out = model(inputs)
-        assert out.logits.shape == (8, 10)
+        assert out.logits.shape == (8, n_classes)
         return
 
 

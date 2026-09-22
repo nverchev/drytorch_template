@@ -1,10 +1,10 @@
 study_name:
   learn
 
-n_trials: 100
+n_trials: 10
 
 params:
-  subexperiment.train.learn.learning_rate:
+  subexperiment.train.learn.lr:
     suggest: suggest_float
     settings:
       low: 1e-4

@@ -3,6 +3,7 @@
 import pathlib
 import pytest
 
+from src.config.environment import VERSION
 from src.config.specs import AllConfig, LinearArchitectureConfig, TrainingConfig, PathSpecs
 from src.config import get_config_all
 
@@ -55,7 +56,7 @@ class TestPathSpecs:
     def test_version_dir(self) -> None:
         """Test version_dir path construction."""
         specs = PathSpecs(root_exp_dir=pathlib.Path('./exp_test'))
-        assert specs.version_dir == pathlib.Path('./exp_test/v0.1.0')
+        assert specs.version_dir == pathlib.Path(f'./exp_test/v{VERSION}')
         return
 
 

@@ -1,10 +1,10 @@
-"""Tests for train metrics and loss modules."""
+"""Tests for train objectives module."""
 
 import pytest
 import torch
 
 from src.data.structures import Outputs, Targets
-from src.train.metrics_and_losses import AggregatedAccuracy, get_accuracy, get_loss
+from src.train.objectives import AggregatedAccuracy, get_accuracy, get_loss
 
 
 class TestLossesAndMetrics:

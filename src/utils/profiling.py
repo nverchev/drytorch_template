@@ -8,10 +8,18 @@ from typing import Any
 import torch
 import torch.profiler
 
+__all__ = [
+    'get_parameter_decomposition',
+    'profile_backward',
+    'profile_forward',
+    'save_parameters',
+    'save_profiler_csv',
+]
+
 logger = logging.getLogger(__name__)
 
 
-def get_parameter_decomposition(module: torch.nn.Module, max_depth: int = 3) -> list[tuple[str, int, int]]:
+def get_parameter_decomposition(module: torch.nn.Module, *, max_depth: int = 3) -> list[tuple[str, int, int]]:
     """Recursively list named modules and their parameter counts."""
     decomp = []
 
@@ -36,7 +44,7 @@ def get_parameter_decomposition(module: torch.nn.Module, max_depth: int = 3) -> 
     return decomp
 
 
-def save_profiler_csv(key_averages: Any, csv_path: pathlib.Path, device: torch.device) -> None:
+def save_profiler_csv(key_averages: Any, csv_path: pathlib.Path, *, device: torch.device) -> None:
     """Save profiler key averages to a CSV file."""
     headers = [
         'name',
@@ -101,6 +109,7 @@ def save_parameters(model: torch.nn.Module, profile_dir: pathlib.Path) -> None:
 def profile_forward(
     model: torch.nn.Module,
     inputs: Any,
+    *,
     device: torch.device,
     profile_dir: pathlib.Path,
 ) -> Any:
@@ -123,12 +132,13 @@ def profile_forward(
         with torch.profiler.record_function('forward'):
             out = model(inputs)
 
-    save_profiler_csv(prof_forward.key_averages(), profile_dir / 'fwd_profile.csv', device)
+    save_profiler_csv(prof_forward.key_averages(), profile_dir / 'fwd_profile.csv', device=device)
     return out
 
 
 def profile_backward(
     loss: torch.Tensor,
+    *,
     device: torch.device,
     profile_dir: pathlib.Path,
 ) -> None:
@@ -146,5 +156,5 @@ def profile_backward(
         with torch.profiler.record_function('backward'):
             loss.backward()
 
-    save_profiler_csv(prof_backward.key_averages(), profile_dir / 'bwd_profile.csv', device)
+    save_profiler_csv(prof_backward.key_averages(), profile_dir / 'bwd_profile.csv', device=device)
     return

@@ -21,7 +21,7 @@ class TestHydraHelpers:
         """Test applying overrides to get_config_all."""
         monkeypatch.setattr('src.config.specs.get_current_branch', lambda: 'main')
         overrides = ['classification.train.n_epochs=25']
-        cfg = get_config_all(overrides)
+        cfg = get_config_all(overrides=overrides)
         assert cfg.classification.train.n_epochs == 25
         assert cfg.tags == ['classification.train.n_epochs=25']
         return

@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from src.config import AllConfig, Experiment, get_config_all
+from src.data.dataset import get_databuilder
 from src.data.structures import Inputs, Targets
 
 
@@ -23,6 +24,12 @@ def active_experiment(default_config: AllConfig) -> Generator[Experiment]:
         yield exp
 
     return
+
+
+@pytest.fixture
+def n_classes() -> int:
+    """Return the number of classes of the configured dataset."""
+    return get_databuilder().n_classes
 
 
 @pytest.fixture(scope='package')

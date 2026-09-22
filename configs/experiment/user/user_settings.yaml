@@ -4,6 +4,7 @@ seed:  # random seed (null = unset)
 
 # Compute
 cpu: false
+torch_compile: true
 n_workers: 0
 n_subprocesses: 0  # 0 disables DDP
 

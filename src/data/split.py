@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import enum
+from typing import Final
 
 import torch
 from torch.utils.data import Dataset
 
 from src.data.augmentations import get_augmenter
 from src.data.structures import Inputs, Targets
+
+__all__ = [
+    'DataSplit',
+    'Partitions',
+]
 
 
 class Partitions(enum.Enum):
@@ -23,11 +30,15 @@ class Partitions(enum.Enum):
 class DataSplit(Dataset[tuple[Inputs, Targets]]):
     """Dataset split wrapper applying runtime augmentations."""
 
+    augment: Final[Callable[[torch.Tensor], torch.Tensor]]
+    features: Final[torch.Tensor]
+    labels: Final[torch.Tensor]
+
     def __init__(self, features: torch.Tensor, labels: torch.Tensor) -> None:
         super().__init__()
+        self.augment = get_augmenter()
         self.features = features
         self.labels = labels
-        self.augment = get_augmenter()
         return
 
     def __len__(self) -> int:

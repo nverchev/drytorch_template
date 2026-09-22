@@ -28,7 +28,6 @@ import abc
 import functools
 import itertools
 import math
-import pdb
 import sys
 import warnings
 
@@ -41,7 +40,24 @@ from torch import Tensor
 
 from src.config.torch import ActClass, NormClass
 
-DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy', 'pdb')) or sys.gettrace() is not None
+DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
+
+__all__ = [
+    'DEBUG_MODE',
+    'BaseLayer',
+    'BaseResBlock',
+    'HasInplace',
+    'HasResetParamPrivate',
+    'HasResetParamPublic',
+    'Layer',
+    'LinearLayer',
+    'LinearResBlock',
+    'ProjectionLayer',
+    'View',
+    'Weighted',
+    'debug_check',
+    'reset_parameters_recursive',
+]
 
 type _grad_t = tuple[torch.Tensor, ...] | torch.Tensor
 
@@ -107,9 +123,10 @@ class BaseLayer(nn.Module, metaclass=abc.ABCMeta):
         self,
         in_dim: int,
         out_dim: int,
+        *,
         act_cls: ActClass | None = None,
-        norm_cls: NormClass | None = None,
         n_groups_layer: int = 1,
+        norm_cls: NormClass | None = None,
         use_trunc_init: bool = False,
     ) -> None:
         super().__init__()
@@ -261,9 +278,11 @@ class BaseResBlock(nn.Module, Generic[Layer], abc.ABC):
     def __init__(
         self,
         dims: Sequence[int],
+        /,
+        *,
         act_cls: ActClass | None = None,
-        norm_cls: NormClass | None = None,
         n_groups_layer: int = 1,
+        norm_cls: NormClass | None = None,
     ) -> None:
         super().__init__()
         self.dims = dims
@@ -273,7 +292,8 @@ class BaseResBlock(nn.Module, Generic[Layer], abc.ABC):
         self.layers = nn.ModuleList()
         self.projections = nn.ModuleList()
         for in_dim, out_dim in itertools.pairwise(dims):
-            self.layers.append(self.get_layer(in_dim, out_dim, act_cls, norm_cls, n_groups_layer))
+            layer = self.get_layer(in_dim, out_dim, act_cls=act_cls, n_groups_layer=n_groups_layer, norm_cls=norm_cls)
+            self.layers.append(layer)
             if in_dim == out_dim:
                 self.projections.append(nn.Identity())
             else:
@@ -300,7 +320,13 @@ class BaseResBlock(nn.Module, Generic[Layer], abc.ABC):
     @classmethod
     @abc.abstractmethod
     def get_layer(
-        cls, in_dim: int, out_dim: int, act_cls: ActClass | None, norm_cls: NormClass | None, n_groups_layer: int
+        cls,
+        in_dim: int,
+        out_dim: int,
+        *,
+        act_cls: ActClass | None = None,
+        n_groups_layer: int = 1,
+        norm_cls: NormClass | None = None,
     ) -> Layer:
         """Get the layer instance."""
 
@@ -326,9 +352,15 @@ class LinearResBlock(BaseResBlock[LinearLayer]):
     @classmethod
     @override
     def get_layer(
-        cls, in_dim: int, out_dim: int, act_cls: ActClass | None, norm_cls: NormClass | None, n_groups_layer: int
+        cls,
+        in_dim: int,
+        out_dim: int,
+        *,
+        act_cls: ActClass | None = None,
+        n_groups_layer: int = 1,
+        norm_cls: NormClass | None = None,
     ) -> LinearLayer:
-        return LinearLayer(in_dim, out_dim, act_cls, norm_cls, n_groups_layer)
+        return LinearLayer(in_dim, out_dim, act_cls=act_cls, n_groups_layer=n_groups_layer, norm_cls=norm_cls)
 
 
 def debug_check(_not_used1: nn.Module, _not_used2: _grad_t, tensor_out: _grad_t) -> None:
@@ -338,14 +370,10 @@ def debug_check(_not_used1: nn.Module, _not_used2: _grad_t, tensor_out: _grad_t)
     else:
         tensor = tensor_out
 
-    if torch.any(torch.isnan(tensor)):
+    if not torch.isfinite(tensor).all():
         breakpoint()
-        pdb.set_trace()
-    elif torch.any(torch.isinf(tensor)):
-        breakpoint()
-        pdb.set_trace()
 
-    return None
+    return
 
 
 def _reset_parameters_or_warn(module: nn.Module) -> None:
@@ -363,7 +391,7 @@ def _reset_parameters_or_warn(module: nn.Module) -> None:
     return
 
 
-def reset_parameters_recursive(module: nn.Module, warn: bool = False) -> None:
+def reset_parameters_recursive(module: nn.Module, /, *, warn: bool = False) -> None:
     """Recursively reset parameters for all submodules.
 
     Args:

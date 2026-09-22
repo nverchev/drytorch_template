@@ -8,10 +8,18 @@ import tomllib
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+__all__ = [
+    'PROJECT_NAME',
+    'VERSION',
+    'ConfigPath',
+    'EnvSettings',
+    'get_current_branch',
+]
 
 with open(pathlib.Path(__file__).resolve().parent.parent.parent / 'pyproject.toml', 'rb') as f:
     pyproject = tomllib.load(f)
 
+PROJECT_NAME: str = pyproject['project']['name']
 VERSION: str = pyproject['project']['version']
 
 
@@ -19,9 +27,11 @@ class EnvSettings(BaseSettings):
     """Settings loaded from environment variables or the ``.env`` file.
 
     Attributes:
+        data_dir: Root directory for the datasets, shared by all versions.
         root_exp_dir: Root directory for all experiment artefacts.
     """
 
+    data_dir: pathlib.Path = pathlib.Path('./data')
     root_exp_dir: pathlib.Path = pathlib.Path('./experiments')
     model_config = SettingsConfigDict(env_file='.env')
 

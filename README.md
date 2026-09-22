@@ -5,60 +5,80 @@
 [![basedpyright - checked](https://img.shields.io/badge/basedpyright-checked-ffc000)](https://docs.basedpyright.com)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
-A project template for the [drytorch](https://github.com/nverchev/drytorch) ML experimentation library.
+A project template for the [drytorch](https://github.com/nverchev/drytorch) ML experimentation library. Out of the box, it implements a simple classification project but can be easily extended to other tasks.
 
-Out of the box it runs a synthetic tabular classification task. The entire
-stack — config, data, model, training loop, evaluation, checkpointing,
-hyperparameter tuning — is wired and ready; you adapt it to your task.
+## Layout
 
-## Key Features
+Package organization and how to adapt it for your own task. Proceed with the changes in the following order.
 
-### Architecture & Design Patterns
-
-- **Modular Layer Primitives**: Extensible `BaseLayer` abstraction (`src/module/layers.py`) pairing linear/convolutional operations (`LinearLayer`, `PointsConvLayer`) with configurable normalization, activations, activation-aware parameter initializations (Kaiming, Xavier, Truncated Normal), forward/backward debug hooks, and residual block composition (`LinearResBlock`).
-- **Typed & Validated Configuration**: Pydantic-backed dataclasses (`AllConfig`) paired with Hydra YAML composition, incorporating runtime validation, git branch variation tracking, and automatic experiment naming from CLI overrides.
-- **Structured Data Subpackage**: Clean separation of dataset construction (`DataBuilder`), offline feature preprocessing (`src/data/preprocess.py`), online runtime augmentations (`src/data/augmentations.py`), and multiprocess-safe dataset splitting.
-- **Optuna Hyperparameter Tuning**: First-class Optuna optimization pipeline (`tune.py`) featuring Gaussian Process sampling, trial pruners, and robust imputation for pruned or failed trials.
-
-### DryTorch Integration & Experiment Management
-
-- **Experiment & Run Lifecycle**: Managed run lifecycle via `Experiment(cfg)`, handling version-scoped directory organization (`v<VERSION>`) and run metadata recording.
-- **Multi-Backend Tracking Subscriptions**: Multi-tracker subscriptions (Hydra config logs, CSV, TensorBoard, Weights & Biases, SQLite/SQLAlchemy) configured via `get_trackers(cfg)`, with automatic debug-mode detection.
-- **Loss Watching & Auxiliary Metrics**: `drytorch.lib.objectives.Loss` wrappers with metric binding (`loss.watch(metric)`), logging secondary evaluation metrics live alongside loss without extra validation passes.
-- **Stateful Metric Accumulation & Reduction**: Custom batch accumulators (`AbstractAccumulator`, `AbstractAggregator`) and evaluation objectives (`ObjectiveProtocol` in `src/train/metrics_and_losses.py`) for cross-batch matrix reduction (e.g. confusion matrices, macro metrics) with automatic DDP rank synchronization (`sync()`).
-- **Learning Schemas & Schedulers**: Flexible training loop orchestration using `drytorch.Trainer` paired with configurable learning schemas (optimizers, gradient clipping, LR schedulers like Cosine, Step, Warmup).
-- **Training Hooks & Callbacks**: Automated checkpointing (`register_checkpointing`), early stopping (`register_early_stopping`), and Optuna trial pruning (`register_pruning`).
-- **Distributed Execution**: Native DDP worker spawning via `DistributedWorker` for multi-GPU execution.
+| Area | Files | In the box | You change |
+| --- | --- | --- | --- |
+| Project | `pyproject.toml` | the name and the version identifying your experiments, and the dependencies | rename it and adapt the dependencies, including the extras that supply the trackers |
+| Typed I/O | `src/data/structures.py` | the typed structures the model consumes and produces | modify the structures according to your sample data |
+| Options | `src/config/options.py`, `src/config/torch.py` | definitions and defaults of the choices the configuration names | add members; the factories dispatch on them |
+| Configuration | `src/config/specs.py`, `configs/experiment/` | the typed configuration tree and the YAML composing it | modify the fields and their YAML; add subexperiments when needed |
+| Data | `src/data/` | a dataset builder, its splits, preprocessing and augmentation | modify the builder for your source; add each further dataset in its own module |
+| Model | `src/module/` | layer primitives and the architectures built from them | replace with your own architectures; this part is largely project dependent |
+| Objectives | `src/train/objectives.py` | the loss and the metrics, with a stateful accumulator | modify the loss and the metrics; write a custom objective when needed |
+| Training | `src/train/`, `train_classifier.py` | the learning schema, the hooks and the entry point wiring them | modify the entry point and the schema; the hook helpers usually stay |
+| Tracking | `src/config/experiment.py`, `src/config/events.py`, `src/trackers/` | the tracker selection, and a custom event with its handlers as an example | delete the subpackage unless your project has an artefact the trackers do not already record |
+| Tuning | `tune_classifier.py`, `configs/tuning/` | an Optuna study searching over the configuration | modify the search spaces under `configs/tuning/tune/`, one file per study |
+| Distributed | `src/utils/parallel.py` | spawning of the DDP processes | usually unchanged; the init method and the backend need adapting on Windows |
 
 ## Setup
 
 ```console
-uv sync
+uv sync --no-dev
 ```
 
-Optional extras:
+for minimal support, or
 
 ```console
-uv sync --extra track_all   # TensorBoard, W&B, SQLAlchemy
-uv sync --extra finetune    # Optuna hyperparameter tuning
+uv sync --all-extras
 ```
+
+for full tracker, tuning and development support.
+
+Paths come from a `.env`, gitignored and created by you: `DATA_DIR` for the
+datasets (default `./data`) and `ROOT_EXP_DIR` for the experiments (default
+`./experiments`).
+
+Install the hooks with `uv run pre-commit install`: `.pre-commit-config.yaml`
+runs ruff and basedpyright on every commit, following the rules in `ruff.toml`,
+which you adapt to your own conventions.
 
 ## Configuration
 
 Configuration is managed with [Hydra](https://hydra.cc/). The config
-hierarchy lives under `configs/experiment/`:
+hierarchy lives under `configs/experiment/`.
 
-- `defaults.yaml` — top-level composition
-- `experiment/` — model and training settings
-- `data/` — dataset source, preprocessing, augmentation
-- `user/` — user-specific paths and tracker preferences
-
-Any value can be overridden on the command line:
+Any value can be overridden on the command line.
+The experiment will be automatically named according to the override and the
+`git` branch name. Overrides in `configs/experiment/user.yaml` do not change the experiment name and should not affect the results of a run.
 
 ```console
-uv run train_classifier.py experiment.train.learn.learning_rate=1e-4
+uv run train_classifier.py classification.train.learn.lr=1e-4
 uv run train_classifier.py final=true
 ```
+The `final` flag determines which partitions a run uses:
+- **`final=false`** *(default)*: trains on `train` → evaluates on `val` (tuning and comparisons)
+- **`final=true`**: trains on `train` + `val` → evaluates on `test` (final evaluation)
+
+## Versioning
+
+`version` in `pyproject.toml` determines the parent directory of the experiment data, containing the checkpoints, the metrics and the metadata of the baseline and its variations:
+
+```
+experiments/v0.1/checkpoints/main/
+experiments/v0.1/checkpoints/main_classification.train.learn.lr=1e-4/
+experiments/v0.1/checkpoints/my_variation/
+```
+Bump the version whenever the baseline improves or changes:
+
+- **the minor part** (`0.1` to `0.2`) after tuning the hyperparameters or after
+  a small architectural change;
+- **the major part** (`0.2` to `1.0`) after a larger change, such as a change in
+  the specifications that breaks backward compatibility.
 
 ## Usage
 
@@ -66,6 +86,7 @@ uv run train_classifier.py final=true
 
 ```console
 uv run train_classifier.py
+uv run train_classifier.py user.n_subprocesses=2   # DDP
 ```
 
 ### Profile
@@ -82,17 +103,22 @@ uv run tune_classifier.py tune=learn
 uv run tune_classifier.py tune=architecture
 ```
 
-Requires the `finetune` optional dependency group (`uv sync --extra finetune`).
-Add parameter search spaces under `configs/tuning/experiment/tune/`.
+Requires the `finetune` extra (see Setup).
+Add parameter search spaces under `configs/tuning/tune/`. Trials are stored in
+`optimization_db/` and plotted with:
 
-## Adapting to a new project
+```console
+uv run plot_tuning_results.py
+```
 
-1. **`src/data/structures.py`** — redefine `Inputs`, `Targets`, `Outputs`.
-2. **`src/config/options.py`** — add `Datasets` / `Models` enum values.
-3. **`src/config/specs.py`** — extend `ModelConfig`, `DataConfig`, etc.
-4. **`configs/experiment/`** — add YAML configs for new options.
-5. **`src/data/synthetic_dataset.py`** — replace `SyntheticDataset` (or subclass `DataBuilder`).
-6. **`src/data/augmentations.py`** — implement `get_augmenter`.
-7. **`src/module/architectures.py`** — add new `BaseArchitecture` subclasses.
-8. **`src/train/loss.py`** — replace `get_loss` / `get_accuracy`.
-9. **`train.py`** — adjust the entry point to match your pipeline.
+### Debugging
+
+Running an entry point under a debugger sets `DEBUG_MODE`, which skips the
+trackers and leaves the run unrecorded, so a debugging session writes no
+checkpoints, metrics or metadata.
+
+### Testing
+
+```console
+uv run pytest
+```

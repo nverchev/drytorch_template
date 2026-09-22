@@ -25,11 +25,17 @@ from hydra.core.hydra_config import HydraConfig
 from omegaconf import OmegaConf, DictConfig
 
 from src.config.environment import ConfigPath
-from src.config.specs import AllConfig, HydraSettings
 from src.config.experiment import update_variation
+from src.config.specs import AllConfig, HydraSettings
+
+__all__ = [
+    'get_config_all',
+    'get_hydra_settings',
+    'hydra_main',
+]
 
 
-def hydra_main(func: Callable[[AllConfig], None]) -> Callable[[], None]:
+def hydra_main(func: Callable[[AllConfig], None], /) -> Callable[[], None]:
     """Decorator that starts a Hydra run and passes a typed config to *func*.
 
     Usage::
@@ -66,7 +72,7 @@ def hydra_main(func: Callable[[AllConfig], None]) -> Callable[[], None]:
     return wrapper.__call__
 
 
-def get_config_all(overrides: list[str] | None = None) -> AllConfig:
+def get_config_all(*, overrides: list[str] | None = None) -> AllConfig:
     """Compose and return an :class:`AllConfig` without starting a Hydra run.
 
     This is the recommended way to construct a config inside the tuning
@@ -74,7 +80,7 @@ def get_config_all(overrides: list[str] | None = None) -> AllConfig:
 
     Args:
         overrides: List of Hydra override strings, e.g.
-            ``['experiment.train.learn.learning_rate=0.001']``.
+            ``['classification.train.learn.lr=0.001']``.
 
     Returns:
         A fully typed and validated :class:`AllConfig`.
@@ -100,7 +106,7 @@ def get_config_all(overrides: list[str] | None = None) -> AllConfig:
         return cfg
 
 
-def get_hydra_settings(dict_cfg: HydraConf) -> HydraSettings:
+def get_hydra_settings(dict_cfg: HydraConf, /) -> HydraSettings:
     """Get subset of hydra settings."""
     settings = HydraSettings()
     settings.output_dir = pathlib.Path(dict_cfg.runtime.output_dir)

@@ -33,7 +33,7 @@ def run_profiling(cfg: AllConfig) -> None:
     """Set up model, create inputs, and profile forward and backward passes."""
     device = cfg.user.device
     if device is None:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.accelerator.current_accelerator(check_available=True) or torch.device('cpu')
 
     train_split, _ = get_datasets()
     inputs, targets = train_split[0]
@@ -47,9 +47,9 @@ def run_profiling(cfg: AllConfig) -> None:
 
     loss_fn = get_loss()
 
-    outputs = profile_forward(model, batch_inputs, device, profile_dir)
+    outputs = profile_forward(model, batch_inputs, device=device, profile_dir=profile_dir)
     loss = loss_fn.calculate(outputs, batch_targets)['CrossEntropy'].sum()
-    profile_backward(loss, device, profile_dir)
+    profile_backward(loss, device=device, profile_dir=profile_dir)
     return
 
 

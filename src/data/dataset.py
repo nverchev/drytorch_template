@@ -6,9 +6,18 @@ from src.data.databuilder import DataBuilder
 from src.data.split import DataSplit, Partitions
 from src.data.synthetic_dataset import SyntheticDataset
 
+__all__ = [
+    'get_databuilder',
+    'get_datasets',
+]
 
-def get_databuilder(name: Datasets | None = None) -> DataBuilder:
-    """Return the dataset builder instance corresponding to dataset name."""
+
+def get_databuilder(name: Datasets | None = None, /) -> DataBuilder:
+    """Return the dataset builder instance corresponding to dataset name.
+
+    Args:
+        name: dataset enum identifier.
+    """
     if name is None:
         name = Experiment.get_config().data.dataset.name
 
@@ -49,6 +58,3 @@ def get_datasets() -> tuple[DataSplit, DataSplit]:
         raise RuntimeError('Splits could not be created.')
 
     return splits
-
-
-get_datasets = get_datasets

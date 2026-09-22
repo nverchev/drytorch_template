@@ -1,22 +1,33 @@
 """Synthetic dataset implementation."""
 
-from typing import ClassVar
+from typing import ClassVar, Final, override
 
 import torch
 
 from src.config.experiment import Experiment
 from src.data.databuilder import DataBuilder
-from src.data.preprocess import get_preprocessor
+from src.data.preprocess import Preprocessor, get_preprocessor
 from src.data.split import Partitions
+
+__all__ = ['SyntheticDataset']
 
 
 class SyntheticDataset(DataBuilder):
     """Synthetic dataset builder generating deterministic non-random samples."""
 
-    n_classes: ClassVar[int] = 10
+    n_classes: ClassVar[int] = 3
+    final: Final[bool]
+    in_features: Final[int]
+    preprocessor: Preprocessor
+    n_train_samples: Final[int]
+    n_val_samples: Final[int]
+    n_test_samples: Final[int]
+    partition_data: Final[dict[Partitions, tuple[torch.Tensor, torch.Tensor]]]
 
     def __init__(self) -> None:
-        cfg_dataset = Experiment.get_config().data.dataset
+        cfg = Experiment.get_config()
+        cfg_dataset = cfg.data.dataset
+        self.final = cfg.final
         self.in_features = cfg_dataset.in_features
         self.n_train_samples = cfg_dataset.n_train_samples
         self.n_val_samples = cfg_dataset.n_val_samples
@@ -43,14 +54,20 @@ class SyntheticDataset(DataBuilder):
 
         return partition_data
 
+    @override
     def _preprocess(self) -> None:
         preprocessor = get_preprocessor()
+        train_partition = Partitions.train_val if self.final else Partitions.train
+        train_features, _ = self._get_partition_data(train_partition)
+        preprocessor.fit(train_features)
         for partition, (features, labels) in self.partition_data.items():
             self.partition_data[partition] = (preprocessor(features), labels)
 
+        self.preprocessor = preprocessor
         return
 
-    def _get_partition_data(self, partition: Partitions) -> tuple[torch.Tensor, torch.Tensor]:
+    @override
+    def _get_partition_data(self, partition: Partitions, /) -> tuple[torch.Tensor, torch.Tensor]:
         if partition == Partitions.train_val:
             train_f, train_l = self.partition_data[Partitions.train]
             val_f, val_l = self.partition_data[Partitions.val]

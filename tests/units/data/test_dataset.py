@@ -1,5 +1,7 @@
 """Tests for the data modules."""
 
+import torch
+
 from src.data.dataset import get_databuilder, get_datasets
 from src.data.databuilder import DataBuilder
 from src.data.split import Partitions
@@ -36,4 +38,18 @@ class TestSyntheticDataset:
         inputs, targets = split[0]
         assert inputs.features.shape[-1] == cfg.data.dataset.in_features
         assert targets.label is not None
+        return
+
+    def test_partition_statistics_non_final(self) -> None:
+        """Test that non-final run centres training split but not test split."""
+        tolerance = 1e-4
+        ds = SyntheticDataset()
+        train_features = ds.split(Partitions.train).features
+        test_features = ds.split(Partitions.test).features
+        train_mean = train_features.mean(dim=0)
+        train_std = train_features.std(dim=0)
+        test_mean = test_features.mean(dim=0)
+        assert torch.allclose(train_mean, torch.zeros_like(train_mean), atol=tolerance)
+        assert torch.allclose(train_std, torch.ones_like(train_std), atol=1e-2)
+        assert not torch.allclose(test_mean, torch.zeros_like(test_mean), atol=tolerance)
         return

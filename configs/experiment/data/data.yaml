@@ -1,0 +1,5 @@
+defaults:
+  - dataset: synthetic
+  - preprocess: preprocess
+  - augmentation: augmentation
+  - _self_

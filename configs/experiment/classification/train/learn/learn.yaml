@@ -1,0 +1,8 @@
+defaults:
+  - scheduler: cosine
+  - _self_
+
+optimizer_name: AdamW
+lr: 1e-3
+opt_settings:
+  weight_decay: 1e-4

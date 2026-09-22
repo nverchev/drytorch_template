@@ -6,10 +6,18 @@ Every drytorch project defines:
   ``Outputs`` — Custom objectproduced by the model's forward pass.
 """
 
+from __future__ import annotations
+
 import dataclasses
-from typing import NamedTuple, Self
+from typing import NamedTuple
 
 import torch
+
+__all__ = [
+    'Inputs',
+    'Outputs',
+    'Targets',
+]
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +65,7 @@ class Outputs:
 
     logits: torch.Tensor
 
-    def update(self, other: Self) -> None:
+    def update(self, other: Outputs, /) -> None:
         """Update outputs."""
         for attribute in other.__slots__:
             try:

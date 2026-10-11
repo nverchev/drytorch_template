@@ -1,12 +1,12 @@
 """Tests for the DataBuilder caching metaclass."""
 
-import copy
 from collections.abc import Generator
 
 import pytest
 from pytest_mock import MockerFixture
 
 from src.config.experiment import Experiment
+from src.config.hydra import get_config_all
 from src.config.specs import AllConfig
 from src.data.databuilder import ConfigCached
 from src.data.synthetic_dataset import SyntheticDataset
@@ -37,8 +37,8 @@ class TestConfigCached:
     ) -> None:
         """Test that construction under a changed data configuration returns a different instance."""
         instance1 = SyntheticDataset()
-        cfg_changed = copy.deepcopy(default_config)
-        cfg_changed.data.dataset.n_train_samples += 10
+        n_train_samples = default_config.data.dataset.n_train_samples + 10
+        cfg_changed = get_config_all(overrides=[f'data.dataset.n_train_samples={n_train_samples}'])
         mocker.patch.object(Experiment, 'get_config', return_value=cfg_changed)
         instance2 = SyntheticDataset()
         assert instance1 is not instance2
@@ -51,8 +51,8 @@ class TestConfigCached:
     ) -> None:
         """Test that construction with changes outside data configuration reuses the instance."""
         instance1 = SyntheticDataset()
-        cfg_changed = copy.deepcopy(default_config)
-        cfg_changed.classification.train.n_epochs += 5
+        n_epochs = default_config.classification.train.n_epochs + 5
+        cfg_changed = get_config_all(overrides=[f'classification.train.n_epochs={n_epochs}'])
         mocker.patch.object(Experiment, 'get_config', return_value=cfg_changed)
         instance2 = SyntheticDataset()
         assert instance1 is instance2

@@ -1,6 +1,6 @@
 defaults:
   - train: train
-  - model: standard
+  - model: model
   - _self_
 
 name: classification

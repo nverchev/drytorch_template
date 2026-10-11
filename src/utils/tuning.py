@@ -2,12 +2,10 @@
 
 import numpy as np
 import optuna
-import yaml
 from omegaconf import DictConfig, OmegaConf
 from optuna import visualization
 
-from src.config import VERSION, ConfigPath
-from src.config.environment import get_current_branch
+from src.config import VERSION, get_config_all
 
 
 __all__ = [
@@ -56,16 +54,21 @@ def impute_failed_trial(trial: optuna.Trial, /) -> float:
     return worst_fn(past_final_values)
 
 
-def get_study_name(tuning_scheme: str, overrides: list[str]) -> str:
-    """Get the study name from the configuration."""
-    version = f'v{VERSION}'
-    with (ConfigPath.EXPERIMENT.get_path() / 'defaults').with_suffix('.yaml').open() as f:
-        loaded_cfg = yaml.safe_load(f)
-        variation = loaded_cfg['variation'] or get_current_branch()
+def get_study_name(config_name: str, tuning_scheme: str, overrides: list[str]) -> str:
+    """Get the name of a study from the configuration its trials start from.
 
+    Args:
+        config_name: experiment configuration the trials start from.
+        tuning_scheme: name of the group of tuned settings.
+        overrides: fixed overrides of every trial.
+
+    Returns:
+        The version, the configuration, its variation, the overrides and the scheme, joined.
+    """
+    variation = get_config_all(config_name).resolved_variation
     override_iter = map(_remove_base_specification, sorted(overrides))
     override_iter = map(_remove_configuration_dir, override_iter)
-    return '_'.join([version, variation, *override_iter, tuning_scheme])
+    return '_'.join([f'v{VERSION}', config_name, variation, *override_iter, tuning_scheme])
 
 
 def log_study_settings(study: optuna.Study, tune_cfg: DictConfig) -> None:

@@ -1,14 +1,17 @@
 """Environment-related configuration and utilities."""
 
 import enum
+import inspect
 import pathlib
 import shutil
 import subprocess
+import sys
 import tomllib
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
+    'DEBUG_MODE',
     'PROJECT_NAME',
     'VERSION',
     'ConfigPath',
@@ -21,6 +24,25 @@ with open(pathlib.Path(__file__).resolve().parent.parent.parent / 'pyproject.tom
 
 PROJECT_NAME: str = pyproject['project']['name']
 VERSION: str = pyproject['project']['version']
+
+
+def _runs_under_debugger() -> bool:
+    if sys.gettrace() is not None or any(module in sys.modules for module in ('pydevd', 'debugpy')):
+        return True
+
+    # pdb and the debuggers built on bdb run the script inside bdb.run, also after removing their trace
+    frame = inspect.currentframe()
+    while frame is not None:
+        if frame.f_globals.get('__name__') == 'bdb':
+            return True
+
+        frame = frame.f_back
+
+    return False
+
+
+# a debugger runs the process: no data of the experiment is written
+DEBUG_MODE: bool = _runs_under_debugger()
 
 
 class EnvSettings(BaseSettings):

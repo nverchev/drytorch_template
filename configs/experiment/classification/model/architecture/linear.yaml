@@ -1,2 +1,4 @@
+norm_cls: GroupedNorm
+act_cls: ELU
 hidden_dims: [256, 128]
 dropout_rate: 0.0

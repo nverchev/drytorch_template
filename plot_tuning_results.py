@@ -19,7 +19,7 @@ from src.utils.tuning import get_study_name, visualize_study
 def main(tune_cfg: DictConfig) -> None:
     """Load Optuna study and show visualization plots."""
     subexp_name = str(tune_cfg.subexperiment)
-    study_name = get_study_name(tune_cfg.tune.study_name + f'_{subexp_name}', tune_cfg.overrides)
+    study_name = get_study_name(tune_cfg.config_name, tune_cfg.tune.study_name + f'_{subexp_name}', tune_cfg.overrides)
     study = optuna.load_study(study_name=study_name, storage=tune_cfg.storage)
     renderer = tune_cfg.get('renderer', 'browser')
     visualize_study(study, renderer=renderer)

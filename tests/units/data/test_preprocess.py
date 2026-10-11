@@ -1,12 +1,10 @@
 """Tests for feature preprocessing module."""
 
-import copy
-
 import torch
 from pytest_mock import MockerFixture
 
 from src.config.experiment import Experiment
-from src.config.specs import AllConfig
+from src.config.hydra import get_config_all
 from src.data.preprocess import Preprocessor
 
 
@@ -38,14 +36,9 @@ class TestPreprocessor:
         assert (mean2.abs() > tolerance).all()
         return
 
-    def test_normalize_false_returns_unchanged(
-        self,
-        default_config: AllConfig,
-        mocker: MockerFixture,
-    ) -> None:
+    def test_normalize_false_returns_unchanged(self, mocker: MockerFixture) -> None:
         """Test that call returns input unchanged when normalize is false."""
-        cfg_no_norm = copy.deepcopy(default_config)
-        cfg_no_norm.data.preprocess.normalize = False
+        cfg_no_norm = get_config_all(overrides=['data.preprocess.normalize=false'])
         mocker.patch.object(Experiment, 'get_config', return_value=cfg_no_norm)
         preprocessor = Preprocessor()
         features = torch.randn(50, 16)

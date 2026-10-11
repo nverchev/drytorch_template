@@ -2,7 +2,9 @@ defaults:
   - scheduler: cosine
   - _self_
 
-optimizer_name: AdamW
+optimizer: AdamW
 lr: 1e-3
+grad_op: null  # see src.config.options.GradOp
+clip_criterion: null  # for hist_clipper and param_hist_clipper
 opt_settings:
   weight_decay: 1e-4

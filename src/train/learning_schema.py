@@ -20,11 +20,11 @@ def get_scheduler(config: SchedulerConfig, /) -> schedulers.AbstractScheduler:
     Args:
         config: scheduler configuration parameters.
     """
-    if config.function == Schedulers.Constant:
+    if config.function == Schedulers.CONSTANT:
         scheduler: schedulers.AbstractScheduler = schedulers.ConstantScheduler()
-    elif config.function == Schedulers.Cosine:
+    elif config.function == Schedulers.COSINE:
         scheduler = schedulers.CosineScheduler(**config.settings)
-    elif config.function == Schedulers.Exponential:
+    elif config.function == Schedulers.EXPONENTIAL:
         scheduler = schedulers.ExponentialScheduler(**config.settings)
     else:
         raise ValueError(f'Scheduler {config.function} not supported.')
@@ -46,27 +46,27 @@ def get_grad_op(config: LearningConfig, /) -> p.GradientOpProtocol:
     Args:
         config: learning configuration parameters.
     """
-    if config.grad_op == GradOp.GradParamNormalizer:
+    if config.grad_op == GradOp.GRAD_PARAM_NORMALIZER:
         return gradient_ops.GradParamNormalizer()
 
-    if config.grad_op == GradOp.GradZScoreNormalizer:
+    if config.grad_op == GradOp.GRAD_Z_SCORE_NORMALIZER:
         return gradient_ops.GradZScoreNormalizer()
 
-    if config.grad_op == GradOp.GradValueClipper:
+    if config.grad_op == GradOp.GRAD_VALUE_CLIPPER:
         return gradient_ops.GradValueClipper()
 
-    if config.grad_op == GradOp.GradNormClipper:
+    if config.grad_op == GradOp.GRAD_NORM_CLIPPER:
         return gradient_ops.GradNormClipper()
 
-    if config.grad_op == GradOp.HistClipper:
-        if config.clip_criterion == ClipCriterion.ZStat:
+    if config.grad_op == GradOp.HIST_CLIPPER:
+        if config.clip_criterion == ClipCriterion.Z_STAT:
             return gradient_ops.HistClipper(criterion=gradient_ops.ZStatCriterion())
 
         if config.clip_criterion == ClipCriterion.EMA:
             return gradient_ops.HistClipper(criterion=gradient_ops.EMACriterion())
 
-    if config.grad_op == GradOp.ParamHistClipper:
-        if config.clip_criterion == ClipCriterion.ZStat:
+    if config.grad_op == GradOp.PARAM_HIST_CLIPPER:
+        if config.clip_criterion == ClipCriterion.Z_STAT:
             return gradient_ops.ParamHistClipper(criterion=gradient_ops.ZStatCriterion())
 
         if config.clip_criterion == ClipCriterion.EMA:
@@ -85,7 +85,7 @@ def get_learning_schema(exp_cfg: ExperimentConfig, /) -> LearningSchema:
     return LearningSchema(
         base_lr=config.lr,
         gradient_op=get_grad_op(config),
-        optimizer_cls=config.optimizer_cls,
+        optimizer_cls=config.optimizer,
         optimizer_defaults=config.opt_settings,
         scheduler=get_scheduler(config.scheduler),
     )

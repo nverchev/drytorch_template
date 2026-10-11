@@ -24,9 +24,9 @@ class ClassificationWandb(Wandb):
 
     @notify.register
     def _(self, event: ConfusionMatrixEvent) -> None:
-        counts = event.matrix.round().long().tolist()
-        columns = ['label', *(f'predicted_{i}' for i in range(len(counts)))]
-        rows = [[str(label), *row] for label, row in enumerate(counts)]
+        counts: list[list[int]] = event.matrix.round().long().tolist()
+        columns: list[str] = ['label', *(f'predicted_{i}' for i in range(len(counts)))]
+        rows: list[list[str | int]] = [[str(label), *row] for label, row in enumerate(counts)]
         table = wandb.Table(columns=columns, data=rows)
         name = f'{event.model_name}/{event.source_name}-confusion_matrix'
         self.run.log({name: table}, step=event.epoch)

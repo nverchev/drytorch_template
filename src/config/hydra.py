@@ -12,20 +12,21 @@ typed config hierarchy.  Two public helpers are exposed:
   to instantiate fresh trial configs.
 """
 
+import dataclasses
 import functools
 import pathlib
-from typing import cast
+from typing import Any, Final, cast
 from collections.abc import Callable
 
 import hydra
 from hydra.conf import HydraConf
-from hydra.core import config_store
 from hydra.core.global_hydra import GlobalHydra
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import OmegaConf, DictConfig
+from pydantic import TypeAdapter
 
 from src.config.environment import ConfigPath
-from src.config.experiment import update_variation
+from src.config.experiment import get_variation
 from src.config.specs import AllConfig, HydraSettings
 
 __all__ = [
@@ -33,6 +34,8 @@ __all__ = [
     'get_hydra_settings',
     'hydra_main',
 ]
+
+DEFAULT_CONFIG: Final = 'mlp_classifier'
 
 
 def hydra_main(func: Callable[[AllConfig], None], /) -> Callable[[], None]:
@@ -45,11 +48,11 @@ def hydra_main(func: Callable[[AllConfig], None], /) -> Callable[[], None]:
 
     The decorator:
 
-    1. Reads ``configs/experiment/defaults.yaml`` and composes the full config.
-    2. Casts the raw :class:`~omegaconf.DictConfig` to :class:`AllConfig`.
-    3. Attaches Hydra runtime settings to ``cfg.user.hydra``.
-    4. Calls :func:`~src.config.experiment.update_exp_name` to embed active
-       overrides into the experiment name.
+    1. Reads ``configs/experiment/<config_name>.yaml`` and composes the full config:
+       ``mlp_classifier`` unless ``--config-name`` selects another file.
+    2. Adds the Hydra runtime settings and embeds the active overrides into the
+       variation, with :func:`~src.config.experiment.get_variation`.
+    3. Validates the result into a frozen :class:`AllConfig` with pydantic.
 
     Args:
         func: Entry-point function that accepts an :class:`AllConfig`.
@@ -58,27 +61,25 @@ def hydra_main(func: Callable[[AllConfig], None], /) -> Callable[[], None]:
         A no-argument callable suitable for use as ``__main__``.
     """
 
-    @hydra.main(version_base=None, config_path=str(ConfigPath.EXPERIMENT.absolute()), config_name='defaults')
+    @hydra.main(version_base=None, config_path=str(ConfigPath.EXPERIMENT.absolute()), config_name=DEFAULT_CONFIG)
     @functools.wraps(func)
     def wrapper(dict_cfg: DictConfig) -> None:
         """Convert configuration to the stored object."""
         hydra_dict_cfg = HydraConfig.get()
-        cfg = cast(AllConfig, OmegaConf.to_object(dict_cfg))
-        cfg.user.hydra = get_hydra_settings(hydra_dict_cfg)
-        overrides = hydra_dict_cfg.overrides.task
-        update_variation(cfg, overrides)
-        return func(cfg)
+        settings = get_hydra_settings(hydra_dict_cfg)
+        return func(_validate(dict_cfg, settings, list(hydra_dict_cfg.overrides.task)))
 
     return wrapper.__call__
 
 
-def get_config_all(*, overrides: list[str] | None = None) -> AllConfig:
+def get_config_all(config_name: str = DEFAULT_CONFIG, *, overrides: list[str] | None = None) -> AllConfig:
     """Compose and return an :class:`AllConfig` without starting a Hydra run.
 
     This is the recommended way to construct a config inside the tuning
     objective function, where each trial may use different overrides.
 
     Args:
+        config_name: name of the file in ``configs/experiment`` to start from.
         overrides: List of Hydra override strings, e.g.
             ``['classification.train.learn.lr=0.001']``.
 
@@ -88,31 +89,31 @@ def get_config_all(*, overrides: list[str] | None = None) -> AllConfig:
     GlobalHydra.instance().clear()
 
     with hydra.initialize(version_base=None, config_path=ConfigPath.EXPERIMENT.relative()):
-        dict_cfg = hydra.compose(config_name='defaults', overrides=overrides)
+        dict_cfg = hydra.compose(config_name=config_name, overrides=overrides)
         try:
-            hydra_dict_cfg = HydraConfig.get()
-            hydra_settings = get_hydra_settings(hydra_dict_cfg)
+            hydra_settings = get_hydra_settings(HydraConfig.get())
         except ValueError:
-            hydra_settings = HydraSettings()
-            hydra_settings.output_dir = pathlib.Path('./outputs')
-            hydra_settings.job_logging = OmegaConf.create()
+            hydra_settings = HydraSettings(job_logging=OmegaConf.create())
 
-        cfg = cast(AllConfig, OmegaConf.to_object(dict_cfg))
-        cfg.user.hydra = hydra_settings
-
-        if overrides is not None:
-            update_variation(cfg, overrides)
-
-        return cfg
+        # a running Hydra job, such as a tuning script, has its own configuration name
+        hydra_settings = dataclasses.replace(hydra_settings, config_name=config_name)
+        return _validate(dict_cfg, hydra_settings, overrides)
 
 
 def get_hydra_settings(dict_cfg: HydraConf, /) -> HydraSettings:
     """Get subset of hydra settings."""
-    settings = HydraSettings()
-    settings.output_dir = pathlib.Path(dict_cfg.runtime.output_dir)
-    settings.job_logging = cast(DictConfig, dict_cfg.job_logging)
-    return settings
+    return HydraSettings(
+        output_dir=pathlib.Path(dict_cfg.runtime.output_dir),
+        job_logging=cast(DictConfig, dict_cfg.job_logging),
+        config_name=str(dict_cfg.job.config_name),
+    )
 
 
-cs = config_store.ConfigStore.instance()
-cs.store(name='all_config', node=AllConfig)
+def _validate(dict_cfg: DictConfig, settings: HydraSettings, overrides: list[str] | None) -> AllConfig:
+    # Hydra composes and resolves the files, pydantic converts and checks the values
+    values = cast(dict[str, Any], OmegaConf.to_container(dict_cfg, resolve=True))
+    values['user']['hydra'] = settings
+    if overrides is not None:
+        values['variation'], values['tags'] = get_variation(values.get('variation'), overrides)
+
+    return TypeAdapter(AllConfig).validate_python(values, extra='forbid')

@@ -1,9 +1,4 @@
-"""Defines all enumerated options used in configuration files.
-
-When adapting this template to a new project, add new enum members to describe
-the concrete choices available (e.g. additional model architectures, datasets).
-The string values are used as YAML keys so prefer lowercase underscore names.
-"""
+"""Defines all enumerated options used in configuration files."""
 
 import enum
 
@@ -22,14 +17,14 @@ __all__ = [
 class Datasets(enum.StrEnum):
     """Dataset choices."""
 
-    Synthetic = enum.auto()
+    SYNTHETIC = enum.auto()
 
 
 class Models(enum.StrEnum):
     """Model architectures."""
 
-    MLPClassifier = enum.auto()
-    MLPResClassifier = enum.auto()
+    MLP_CLASSIFIER = enum.auto()
+    MLP_RES_CLASSIFIER = enum.auto()
 
 
 # ---------------------------------------------------------------------------
@@ -40,26 +35,26 @@ class Models(enum.StrEnum):
 class GradOp(enum.StrEnum):
     """Gradient operation names."""
 
-    GradParamNormalizer = enum.auto()
-    GradZScoreNormalizer = enum.auto()
-    GradNormClipper = enum.auto()
-    GradValueClipper = enum.auto()
-    HistClipper = enum.auto()
-    ParamHistClipper = enum.auto()
+    GRAD_PARAM_NORMALIZER = enum.auto()
+    GRAD_Z_SCORE_NORMALIZER = enum.auto()
+    GRAD_NORM_CLIPPER = enum.auto()
+    GRAD_VALUE_CLIPPER = enum.auto()
+    HIST_CLIPPER = enum.auto()
+    PARAM_HIST_CLIPPER = enum.auto()
 
 
 class ClipCriterion(enum.StrEnum):
     """Clipping criterion names for histogram-based gradient clippers."""
 
-    ZStat = enum.auto()
+    Z_STAT = enum.auto()
     EMA = enum.auto()
 
 
 class Schedulers(enum.StrEnum):
     """Learning-rate scheduler names."""
 
-    Constant = enum.auto()
-    Cosine = enum.auto()
-    Exponential = enum.auto()
-    Polynomial = enum.auto()
-    Step = enum.auto()
+    CONSTANT = enum.auto()
+    COSINE = enum.auto()
+    EXPONENTIAL = enum.auto()
+    POLYNOMIAL = enum.auto()
+    STEP = enum.auto()

@@ -10,6 +10,7 @@ import drytorch
 from drytorch.core import tracking
 from drytorch.trackers import logging
 
+from src.config.environment import DEBUG_MODE, get_current_branch
 from src.config.specs import AllConfig
 from src.trackers import ClassificationLogger
 
@@ -17,8 +18,8 @@ from src.trackers import ClassificationLogger
 __all__ = [
     'Experiment',
     'get_trackers',
+    'get_variation',
     'set_tuning_logging',
-    'update_variation',
 ]
 
 
@@ -26,7 +27,7 @@ class Experiment(drytorch.Experiment[AllConfig]):
     """Specify specification class for configurations."""
 
 
-def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Tracker]:
+def get_trackers(cfg: AllConfig, debug_mode: bool = DEBUG_MODE) -> list[tracking.Tracker]:
     """Instantiate the experiment trackers requested in *cfg*.
 
     Trackers are only activated outside debug mode.  In debug mode an empty
@@ -34,7 +35,8 @@ def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Trac
 
     Args:
         cfg: Root configuration object.
-        debug_mode: When ``True``, skip all tracker initialisation.
+        debug_mode: When ``True``, skip all tracker initialisation. Defaults to
+            whether a debugger runs the process.
 
     Returns:
         A list of initialised :class:`drytorch.core.tracking.Tracker` objects
@@ -44,6 +46,8 @@ def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Trac
     cfg_hydra = cfg.user.hydra
     hydra_utils.configure_log(cfg_hydra.job_logging)
     drytorch.init_trackers(mode='hydra')
+
+    # optionally replace the built-in logger with a project-specific one
     tracking.DEFAULT_TRACKERS.pop(logging.BuiltinLogger.__name__, None)
     drytorch.extend_default_trackers([ClassificationLogger()])
     optional_tracker_list: list[tracking.Tracker] = []
@@ -56,9 +60,11 @@ def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Trac
 
             from src.trackers.wandb import ClassificationWandb
 
-            optional_tracker_list.append(ClassificationWandb(settings=wandb.Settings(project=cfg.project)))
         except ImportError as e:
             warnings.warn(f'Wandb not installed, skipping. {e}', stacklevel=2)
+
+        else:
+            optional_tracker_list.append(ClassificationWandb(settings=wandb.Settings(project=cfg.project)))
 
     if cfg_trackers.hydra:
         from drytorch.trackers.hydra import HydraLink
@@ -98,15 +104,19 @@ def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Trac
     return optional_tracker_list
 
 
-def update_variation(cfg: AllConfig, overrides: list[str]) -> None:
+def get_variation(variation: object, overrides: list[str], /) -> tuple[str, list[str]]:
     """Embed active Hydra overrides into the experiment variation name.
 
     User-specific overrides do not affect the experiment and are filtered out.
     The logic for the final flag is handled by the Experiment class.
 
     Args:
-        cfg: Root configuration object (mutated in place).
-        overrides: Raw Hydra task override strings.
+        variation: variation of the configuration, the current git branch when unset; the command
+            line gives numbers as numbers.
+        overrides: raw Hydra task override strings.
+
+    Returns:
+        The variation followed by the overrides, and the overrides as tags.
     """
     filtered_overrides = [
         override
@@ -114,9 +124,9 @@ def update_variation(cfg: AllConfig, overrides: list[str]) -> None:
         if override.split('.')[0] != 'user' and override.split('=')[0] not in ('final', 'variation')
     ]
     sorted_overrides = sorted(filtered_overrides)
-    cfg.variation = '_'.join([cfg.resolved_variation, *sorted_overrides]).replace('/', '_')
-    cfg.tags = sorted_overrides
-    return
+    base = str(variation) if variation is not None else get_current_branch()
+    name = '_'.join([base, *sorted_overrides]).replace('/', '_')
+    return name, sorted_overrides
 
 
 def set_tuning_logging() -> None:

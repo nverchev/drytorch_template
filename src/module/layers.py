@@ -14,7 +14,7 @@ Key abstractions
     Point-wise 1-D convolution (``nn.Conv1d``), useful for set-valued inputs
     such as point clouds or token sequences.
 :class:`BaseResBlock`
-    Abstract residual block over any :class:`BaseLayer` subclass.
+    Abstract residual block: a sequence of :class:`BaseLayer` layers added to its input.
 :class:`LinearResBlock`
     Residual MLP block built from :class:`LinearLayer` layers.
 
@@ -27,8 +27,6 @@ Utilities
 import abc
 import functools
 import itertools
-import math
-import sys
 import warnings
 
 from collections.abc import Callable, Sequence
@@ -38,23 +36,20 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+from src.config.environment import DEBUG_MODE
 from src.config.torch import ActClass, NormClass
 
-DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
-
 __all__ = [
-    'DEBUG_MODE',
     'BaseLayer',
     'BaseResBlock',
     'HasInplace',
     'HasResetParamPrivate',
     'HasResetParamPublic',
+    'IdentityLinear',
     'Layer',
     'LinearLayer',
     'LinearResBlock',
-    'ProjectionLayer',
     'View',
-    'Weighted',
     'debug_check',
     'reset_parameters_recursive',
 ]
@@ -83,14 +78,6 @@ class HasResetParamPrivate(Protocol):
 
     def _reset_parameters(self) -> None:
         """Reset the parameters of the module."""
-
-
-@runtime_checkable
-class Weighted(Protocol):
-    """Protocol for classes that have a weight attribute."""
-
-    weight: torch.Tensor
-    bias: torch.Tensor | None
 
 
 class View(nn.Module):
@@ -237,43 +224,41 @@ class LinearLayer(BaseLayer):
 Layer = TypeVar('Layer', bound=BaseLayer)
 
 
-class ProjectionLayer(nn.Module):
-    """A layer that projects the input to a different dimension."""
+class IdentityLinear(nn.Linear):
+    """Linear layer that starts as the identity, cutting or padding the input with zeros."""
 
-    in_dim: int
-    out_dim: int
+    @override
+    def reset_parameters(self) -> None:
+        """Initialize the weights as the identity and the bias as zeros."""
+        nn.init.eye_(self.weight)
+        if self.bias is not None:
+            nn.init.zeros_(self.bias)
 
-    def __init__(self, in_dim: int, out_dim: int) -> None:
-        """Initialize the projection layer."""
-        super().__init__()
-        self.in_dim = in_dim
-        self.out_dim = out_dim
         return
-
-    def forward(self, x: Tensor) -> Tensor:
-        """Forward pass."""
-        if x.shape[1] != self.in_dim:
-            raise ValueError(f'Input dimension {x.shape[1]} does not match expected dimension {self.in_dim}')
-
-        if self.in_dim == self.out_dim:
-            return x
-
-        if self.in_dim > self.out_dim:
-            out = torch.cat([t.mean(1, keepdim=True) for t in torch.chunk(x, self.out_dim, dim=1)], dim=1)
-        else:
-            out = x.repeat_interleave(self.out_dim // self.in_dim + 1, 1)[:, : self.out_dim, ...]
-
-        var_adjust = math.sqrt(self.in_dim / self.out_dim)
-        return out * var_adjust
 
 
 class BaseResBlock(nn.Module, Generic[Layer], abc.ABC):
-    """A block of a neural network consisting of a sequence of layers."""
+    """A sequence of layers whose output is added to the input of the block.
+
+    The skip connection is the identity, or a projection initialized close to it when the
+    first and last dimensions differ. The last layer starts from a truncated Gaussian with a
+    small deviation, so the block starts close to its skip connection.
+
+    Attributes:
+        dims: the dimensions of the input and of the output of each layer.
+        act_cls: the class of the activation.
+        norm_cls: the class of the normalization.
+        n_groups_layer: the number of groups of each layer.
+        layers: the layers, in order.
+        skip: the connection carrying the input to the output of the layers.
+    """
 
     dims: Sequence[int]
     act_cls: ActClass | None
     norm_cls: NormClass | None
     n_groups_layer: int
+    layers: nn.Sequential
+    skip: nn.Module
 
     def __init__(
         self,
@@ -284,37 +269,47 @@ class BaseResBlock(nn.Module, Generic[Layer], abc.ABC):
         n_groups_layer: int = 1,
         norm_cls: NormClass | None = None,
     ) -> None:
+        """Initialize.
+
+        Args:
+            dims: the dimensions of the input and of the output of each layer.
+            act_cls: the class of the activation.
+            n_groups_layer: the number of groups of each layer.
+            norm_cls: the class of the normalization.
+        """
         super().__init__()
         self.dims = dims
         self.act_cls = act_cls
         self.norm_cls = norm_cls
         self.n_groups_layer = n_groups_layer
-        self.layers = nn.ModuleList()
-        self.projections = nn.ModuleList()
-        for in_dim, out_dim in itertools.pairwise(dims):
-            layer = self.get_layer(in_dim, out_dim, act_cls=act_cls, n_groups_layer=n_groups_layer, norm_cls=norm_cls)
+        self.layers = nn.Sequential()
+        n_layers = len(dims) - 1
+        for i, (in_dim, out_dim) in enumerate(itertools.pairwise(dims), start=1):
+            layer = self.get_layer(
+                in_dim,
+                out_dim,
+                act_cls=act_cls,
+                n_groups_layer=n_groups_layer,
+                norm_cls=norm_cls,
+                use_trunc_init=i == n_layers,
+            )
             self.layers.append(layer)
-            if in_dim == out_dim:
-                self.projections.append(nn.Identity())
-            else:
-                self.projections.append(self.get_projection(in_dim, out_dim))
 
-        self._adjust_variance_init()
+        self.skip = nn.Identity() if dims[0] == dims[-1] else self.get_projection(dims[0], dims[-1])
         return
 
     def forward(self, x: Tensor) -> Tensor:
-        """Forward pass."""
-        for i, layer in enumerate(self.layers):
-            x = self.projections[i](x) + layer(x)
-
-        return x
+        """Add the input, carried by the skip connection, to the output of the layers."""
+        return self.skip(x) + self.layers(x)
 
     def reset_parameters(self) -> None:
-        """(Re)-Initialize the weights and bias of the layer."""
+        """(Re)-Initialize the weights and bias of the layers and of the skip connection."""
         for layer in self.layers:
             _reset_parameters_or_warn(layer)
 
-        self._adjust_variance_init()
+        if not isinstance(self.skip, nn.Identity):
+            _reset_parameters_or_warn(self.skip)
+
         return
 
     @classmethod
@@ -327,23 +322,14 @@ class BaseResBlock(nn.Module, Generic[Layer], abc.ABC):
         act_cls: ActClass | None = None,
         n_groups_layer: int = 1,
         norm_cls: NormClass | None = None,
+        use_trunc_init: bool = False,
     ) -> Layer:
         """Get the layer instance."""
 
     @classmethod
+    @abc.abstractmethod
     def get_projection(cls, in_dim: int, out_dim: int) -> nn.Module:
-        """Get a projection layer"""
-        return ProjectionLayer(in_dim, out_dim)
-
-    def _adjust_variance_init(self) -> None:
-        with torch.no_grad():
-            for layer in self.layers:
-                if isinstance(layer.module, Weighted):
-                    layer.module.weight.mul_(1 / math.sqrt(len(self.dims) - 1))
-                    if layer.module.bias is not None:
-                        layer.module.bias.mul_(0)
-
-        return
+        """Get the projection carrying the input when the dimensions differ, starting close to the identity."""
 
 
 class LinearResBlock(BaseResBlock[LinearLayer]):
@@ -359,8 +345,21 @@ class LinearResBlock(BaseResBlock[LinearLayer]):
         act_cls: ActClass | None = None,
         n_groups_layer: int = 1,
         norm_cls: NormClass | None = None,
+        use_trunc_init: bool = False,
     ) -> LinearLayer:
-        return LinearLayer(in_dim, out_dim, act_cls=act_cls, n_groups_layer=n_groups_layer, norm_cls=norm_cls)
+        return LinearLayer(
+            in_dim,
+            out_dim,
+            act_cls=act_cls,
+            n_groups_layer=n_groups_layer,
+            norm_cls=norm_cls,
+            use_trunc_init=use_trunc_init,
+        )
+
+    @classmethod
+    @override
+    def get_projection(cls, in_dim: int, out_dim: int) -> IdentityLinear:
+        return IdentityLinear(in_dim, out_dim)
 
 
 def debug_check(_not_used1: nn.Module, _not_used2: _grad_t, tensor_out: _grad_t) -> None:

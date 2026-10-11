@@ -61,7 +61,7 @@ def get_databuilder_classes() -> int:
 
 def setup_and_profile(cfg: AllConfig) -> None:
     """Initialise experiment run and launch profiling."""
-    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
+    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.par_dir, tags=cfg.tags)
     with exp.create_run(resume=True, record=False):
         run_profiling(cfg)
 

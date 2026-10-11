@@ -7,13 +7,12 @@ Usage::
     uv run train_classifier.py final=true
 """
 
-import sys
-
 from typing import TYPE_CHECKING, Any, cast
 
 from drytorch import Test, Trainer, Validation
 
 from src.config import AllConfig, Experiment, get_trackers, hydra_main
+from src.config.environment import DEBUG_MODE
 from src.config.events import ConfusionMatrixEvent
 from src.data.dataset import get_databuilder
 from src.module import get_model
@@ -27,9 +26,6 @@ if TYPE_CHECKING:
     from optuna import Trial
 else:
     Trial = Any
-
-
-DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
 
 
 def train_classification(trial: Trial | None = None) -> None:
@@ -68,7 +64,7 @@ def train_classification(trial: Trial | None = None) -> None:
         loss=loss,
     )
     if not cfg.final:
-        builder.add_validation(eval_loader, val_name=f'LossValidation')
+        builder.add_validation(eval_loader, val_name='LossValidation')
 
     if not cfg.final and class_cfg.train.early_stopping.active:
         cfg_early = class_cfg.train.early_stopping
@@ -108,9 +104,9 @@ def train_classification(trial: Trial | None = None) -> None:
 
 def setup_and_train(cfg: AllConfig) -> None:
     """Initialise the experiment run and launch training."""
-    trackers = get_trackers(cfg, DEBUG_MODE)
+    trackers = get_trackers(cfg)
     resume = cfg.user.load != 0
-    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
+    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.par_dir, tags=cfg.tags)
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 

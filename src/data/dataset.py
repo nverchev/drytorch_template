@@ -22,7 +22,7 @@ def get_databuilder(name: Datasets | None = None, /) -> DataBuilder:
         name = Experiment.get_config().data.dataset.name
 
     databuilder_dict: dict[Datasets, type[DataBuilder]] = {
-        Datasets.Synthetic: SyntheticDataset,
+        Datasets.SYNTHETIC: SyntheticDataset,
     }
     return databuilder_dict[name]()
 

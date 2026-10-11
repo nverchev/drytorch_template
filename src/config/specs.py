@@ -27,15 +27,19 @@ from functools import cached_property
 from typing import Any, Annotated, Self
 
 import torch
+import torch.nn as nn
 
-from pydantic import Field, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 from pydantic.dataclasses import dataclass
 
 from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
-from src.config.torch import get_activation_cls, get_norm_cls, get_optim_cls, set_seed, DEFAULT_ACT, DEFAULT_NORM
+from src.config.torch import ActClass, GroupedNorm, NormClass, get_activation_cls, get_norm_cls, get_optim_cls, set_seed
 from src.config.options import GradOp, ClipCriterion, Schedulers, Models, Datasets
 
 
+ActivationClass = Annotated[ActClass, BeforeValidator(get_activation_cls)]
+NormalizationClass = Annotated[NormClass, BeforeValidator(get_norm_cls)]
+OptimizerClass = Annotated[type[torch.optim.Optimizer], BeforeValidator(get_optim_cls)]
 PositiveInt = Annotated[int, Field(ge=0)]
 StrictlyPositiveInt = Annotated[int, Field(gt=0)]
 PositiveFloat = Annotated[float, Field(ge=0)]
@@ -46,28 +50,20 @@ PositiveFloat = Annotated[float, Field(ge=0)]
 # ---------------------------------------------------------------------------
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class BaseArchitectureConfig:
     """Base specification for an architecture with activation and normalisation.
 
     Attributes:
-        norm_name: Name of a PyTorch normalisation class, e.g. ``'BatchNorm1d'``.
-            Leave empty to use the project default (see :data:`DEFAULT_NORM`).
-        act_name: Name of a PyTorch activation class, e.g. ``'ReLU'``.
-            Leave empty to use the project default (see :data:`DEFAULT_ACT`).
+        norm_cls: Normalization of the layers, written by its name, e.g. ``BatchNorm1d``.
+        act_cls: Activation of the layers, written by its name, e.g. ``ReLU``.
     """
 
-    norm_name: str = ''
-    act_name: str = ''
-
-    def __post_init__(self) -> None:
-        """Resolve activation and normalisation classes from their string names."""
-        self.act_cls = get_activation_cls(self.act_name) if self.act_name else DEFAULT_ACT
-        self.norm_cls = get_norm_cls(self.norm_name) if self.norm_name else DEFAULT_NORM
-        return
+    norm_cls: NormalizationClass = GroupedNorm
+    act_cls: ActivationClass = nn.ELU
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class LinearArchitectureConfig(BaseArchitectureConfig):
     """Feedforward (linear) architecture parameters.
 
@@ -80,7 +76,7 @@ class LinearArchitectureConfig(BaseArchitectureConfig):
     dropout_rate: PositiveFloat = 0.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelConfig:
     """Model class selector and non-architectural settings.
 
@@ -90,7 +86,7 @@ class ModelConfig:
         ema_decay: Exponential moving average decay for the EMA model copy.
     """
 
-    class_name: Models = Models.MLPClassifier
+    class_name: Models = Models.MLP_CLASSIFIER
     architecture: LinearArchitectureConfig = dataclasses.field(default_factory=LinearArchitectureConfig)
     ema_decay: float = 0.999
 
@@ -100,7 +96,7 @@ class ModelConfig:
 # ---------------------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class DatasetConfig:
     """Dataset identity and class filter.
 
@@ -113,7 +109,7 @@ class DatasetConfig:
         n_test_samples: Number of test split samples.
     """
 
-    name: Datasets = Datasets.Synthetic
+    name: Datasets = Datasets.SYNTHETIC
     selected_classes: list[str] = dataclasses.field(default_factory=list)
     in_features: StrictlyPositiveInt = 64
     n_train_samples: StrictlyPositiveInt = 1000
@@ -121,7 +117,7 @@ class DatasetConfig:
     n_test_samples: StrictlyPositiveInt = 200
 
 
-@dataclass
+@dataclass(frozen=True)
 class PreprocessConfig:
     """Preprocessing settings.
 
@@ -132,7 +128,7 @@ class PreprocessConfig:
     normalize: bool = True
 
 
-@dataclass
+@dataclass(frozen=True)
 class AugmentationConfig:
     """Data augmentation flags.
 
@@ -143,7 +139,7 @@ class AugmentationConfig:
     noise: PositiveFloat = 0.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class DataConfig:
     """Full data configuration.
 
@@ -163,7 +159,7 @@ class DataConfig:
 # ---------------------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class SchedulerConfig:
     """Specification for the learning-rate scheduler.
 
@@ -183,12 +179,12 @@ class SchedulerConfig:
     settings: dict[str, Any] = dataclasses.field(default_factory=dict)
 
 
-@dataclass
+@dataclass(frozen=True)
 class LearningConfig:
     """Specification for the optimiser and learning schedule.
 
     Attributes:
-        optimizer_name: Name of a PyTorch optimiser, e.g. ``'AdamW'``.
+        optimizer: PyTorch optimizer, written by its name, e.g. ``AdamW``.
         lr: Global learning rate (or per-parameter group base LR).
         scheduler: Learning-rate scheduler configuration.
         grad_op: Optional gradient pre-processing operation applied before
@@ -198,28 +194,23 @@ class LearningConfig:
             constructor (e.g. ``weight_decay``).
     """
 
-    optimizer_name: str
+    optimizer: OptimizerClass
     lr: PositiveFloat
     scheduler: SchedulerConfig
     grad_op: GradOp | None = None
     clip_criterion: ClipCriterion | None = None
     opt_settings: dict[str, Any] = dataclasses.field(default_factory=dict)
 
-    def __post_init__(self) -> None:
-        """Resolve optimizer class from name."""
-        self.optimizer_cls = get_optim_cls(self.optimizer_name)
-        return
-
     @model_validator(mode='after')
     def _check_clip_criterion(self) -> Self:
-        if self.clip_criterion is None and self.grad_op in (GradOp.HistClipper, GradOp.ParamHistClipper):
+        if self.clip_criterion is None and self.grad_op in (GradOp.HIST_CLIPPER, GradOp.PARAM_HIST_CLIPPER):
             msg = 'Must specify clip_criterion when using HistClipper or ParamHistClipper.'
             raise ValueError(msg)
 
         return self
 
 
-@dataclass
+@dataclass(frozen=True)
 class EarlyStoppingConfig:
     """Specification for early stopping.
 
@@ -234,7 +225,7 @@ class EarlyStoppingConfig:
     patience: int = 10
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainingConfig:
     """Specification for the training loop.
 
@@ -273,7 +264,7 @@ class TrainingConfig:
 # ---------------------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExperimentConfig:
     """Specification for a single subexperiment."""
 
@@ -287,7 +278,7 @@ class ExperimentConfig:
 # ---------------------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrackerList:
     """Flags controlling which experiment trackers are active.
 
@@ -306,20 +297,22 @@ class TrackerList:
     sqlalchemy: bool
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class HydraSettings:
     """Subset of Hydra runtime settings, populated automatically at startup.
 
     Attributes:
         output_dir: Directory where Hydra stores logs and config dumps.
         job_logging: Hydra job-logging DictConfig used to configure Python logging.
+        config_name: Name of the file in ``configs/experiment`` the configuration starts from.
     """
 
-    output_dir: pathlib.Path = dataclasses.field(default_factory=pathlib.Path, init=False)
-    job_logging: Any = dataclasses.field(default=None, init=False)
+    output_dir: pathlib.Path = pathlib.Path('outputs')
+    job_logging: Any = None
+    config_name: str = ''
 
 
-@dataclass
+@dataclass(frozen=True)
 class PathSpecs:
     """Filesystem path specifications populated from environment variables.
 
@@ -341,7 +334,7 @@ class PathSpecs:
         return self.root_exp_dir / f'v{VERSION}'
 
 
-@dataclass
+@dataclass(frozen=True)
 class UserSettings:
     """User-specific runtime preferences.
 
@@ -385,7 +378,7 @@ class UserSettings:
 # ---------------------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class AllConfig:
     """Root configuration object for all experiment settings.
 
@@ -412,7 +405,7 @@ class AllConfig:
         try:
             return get_current_branch()
         except ValueError as ve:
-            msg = "Could not resolve git branch. Set 'variation' in defaults.yaml."
+            msg = "Could not resolve git branch. Set 'variation' in the configuration file."
             raise ValueError(msg) from ve
 
     @property
@@ -425,6 +418,11 @@ class AllConfig:
         """Full experiment name embedded into tracker runs."""
         suffix = '_final' if self.final else ''
         return self.resolved_variation[:249] + suffix
+
+    @property
+    def par_dir(self) -> pathlib.Path:
+        """Directory of the experiments of this configuration: ``<version_dir>/<config_name>``."""
+        return self.user.path.version_dir / self.user.hydra.config_name
 
     @property
     def project(self) -> str:

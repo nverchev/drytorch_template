@@ -29,13 +29,12 @@ def set_objective(tune_cfg: DictConfig, subexp_name: str) -> Callable[[optuna.Tr
 
     def objective(trial: optuna.Trial) -> float:
         """Set up the experiment and launch the training cycle."""
-        overrides = suggest_overrides(tune_cfg, trial)
-        actual_overrides = [o.replace('subexperiment.', f'{subexp_name}.') for o in overrides]
-        trial_cfg = get_config_all(overrides=actual_overrides)
-        getattr(trial_cfg, subexp_name).train.n_epochs = tune_cfg.n_epochs
-        trial_cfg.user.seed = tune_cfg.seed
+        overrides = [o.replace('subexperiment.', f'{subexp_name}.') for o in suggest_overrides(tune_cfg, trial)]
+        seed = 'null' if tune_cfg.seed is None else tune_cfg.seed
+        overrides += [f'{subexp_name}.train.n_epochs={tune_cfg.n_epochs}', f'user.seed={seed}']
+        trial_cfg = get_config_all(tune_cfg.config_name, overrides=[*tune_cfg.overrides, *overrides])
 
-        exp = Experiment(trial_cfg, name=trial_cfg.name, par_dir=trial_cfg.user.path.version_dir, tags=trial_cfg.tags)
+        exp = Experiment(trial_cfg, name=trial_cfg.name, par_dir=trial_cfg.par_dir, tags=trial_cfg.tags)
         with exp.create_run(record=False):
             try:
                 train_classification(trial=trial)
@@ -73,7 +72,7 @@ def main(tune_cfg: DictConfig) -> None:
         pruner = optuna.pruners.NopPruner()
 
     sampler = optuna.samplers.GPSampler(warn_independent_sampling=False)
-    study_name = get_study_name(tune_cfg.tune.study_name + f'_{subexp_name}', tune_cfg.overrides)
+    study_name = get_study_name(tune_cfg.config_name, tune_cfg.tune.study_name + f'_{subexp_name}', tune_cfg.overrides)
     study = optuna.create_study(
         study_name=study_name, storage=tune_cfg.storage, sampler=sampler, pruner=pruner, load_if_exists=True
     )

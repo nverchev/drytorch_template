@@ -1,7 +1,6 @@
 defaults:
-  - all_config
   - classification: classification
-  - user: user_settings
+  - user: user
   - data: data
   - _self_
 

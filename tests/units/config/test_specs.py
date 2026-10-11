@@ -1,5 +1,6 @@
 """Tests for the config specs module."""
 
+import dataclasses
 import pathlib
 import pytest
 
@@ -20,7 +21,7 @@ class TestLinearArchitectureConfig:
 
     def test_custom_activation_and_norm(self) -> None:
         """Test resolving custom activation and normalization class names."""
-        arch = LinearArchitectureConfig(act_name='GELU', norm_name='LayerNorm')
+        arch = LinearArchitectureConfig(act_cls='GELU', norm_cls='LayerNorm')
         assert arch.act_cls.__name__ == 'GELU'
         assert arch.norm_cls.__name__ == 'LayerNorm'
         return
@@ -66,22 +67,18 @@ class TestAllConfig:
     def test_resolved_variation_fallback(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test resolved_variation uses git_branch if variation is None."""
         monkeypatch.setattr('src.config.specs.get_current_branch', lambda: 'main')
-        cfg = get_config_all()
-        cfg.variation = None
+        cfg = dataclasses.replace(get_config_all(), variation=None)
         assert cfg.resolved_variation == 'main'
         return
 
     def test_resolved_variation_explicit(self) -> None:
         """Test resolved_variation returns explicit variation string."""
-        cfg = get_config_all()
-        cfg.variation = 'custom_var'
+        cfg = dataclasses.replace(get_config_all(), variation='custom_var')
         assert cfg.resolved_variation == 'custom_var'
         return
 
     def test_name_property_with_final_flag(self) -> None:
         """Test experiment name suffix when final flag is set."""
-        cfg = get_config_all()
-        cfg.variation = 'test_run'
-        cfg.final = True
+        cfg = dataclasses.replace(get_config_all(), variation='test_run', final=True)
         assert cfg.name == 'test_run_final'
         return

@@ -1,36 +1,36 @@
 """Tests for training hooks registration."""
 
-from unittest.mock import MagicMock
+from typing import Any
 
 import torch
 
 from drytorch import DataLoader, Trainer
 from drytorch.contrib.optuna import TrialCallback
 from drytorch.lib.hooks import EarlyStopping, SavingHook
-from src.config.experiment import Experiment
-from src.data.dataset import get_datasets
-from src.module import get_model
-from src.train import get_learning_schema, get_loss
+from drytorch.lib.training import TrainerBuilder
+from src import module
+from src.config import experiment
+from src.data import dataset
+from src.train import learning_schema, models, objectives
 from src.train.hooks import register_checkpointing, register_early_stopping, register_pruning
-from src.train.models import ClassifierModel
 
 
-def _get_test_builder():
-    cfg = Experiment.get_config()
-    model = ClassifierModel(
-        get_model(),
+def _get_test_builder() -> TrainerBuilder[Any, Any, Any]:
+    cfg = experiment.Experiment.get_config()
+    model = models.ClassifierModel(
+        module.get_classifier(),
         device=torch.device('cpu'),
         torch_compile=False,
         distribute=False,
     )
-    dataset, _ = get_datasets()
-    loader = DataLoader(dataset, batch_size=4)
-    schema = get_learning_schema(cfg.classification)
+    data, _ = dataset.get_datasets()
+    loader = DataLoader(data, batch_size=4)
+    schema = learning_schema.get_learning_schema(cfg.classification)
     builder = Trainer.builder(
         model,
         name='test_trainer',
         loader=loader,
-        loss=get_loss(),
+        loss=objectives.get_classification_loss(),
         learning_schema=schema,
     )
     builder.add_validation(loader, val_name='test_val')
@@ -40,32 +40,42 @@ def _get_test_builder():
 class TestHooks:
     """Test hook registration functions."""
 
-    def test_register_checkpointing(self) -> None:
-        """Test checkpointing hook registration."""
+    def test_register_checkpointing_noop_when_none(self) -> None:
+        """Skip registering checkpointing hook when interval is None."""
         builder = _get_test_builder()
         initial_count = len(builder._post_epoch_hooks)
+
         register_checkpointing(builder, checkpoint_every=None)
+
         assert len(builder._post_epoch_hooks) == initial_count
+
+    def test_register_checkpointing_when_specified(self) -> None:
+        """Register model checkpointing hook when interval is specified."""
+        builder = _get_test_builder()
+        initial_count = len(builder._post_epoch_hooks)
+
         register_checkpointing(builder, checkpoint_every=2)
+
         assert len(builder._post_epoch_hooks) == initial_count + 1
         assert isinstance(builder._post_epoch_hooks[-1], SavingHook)
-        return
 
     def test_register_early_stopping(self) -> None:
-        """Test early stopping hook registration."""
+        """Register early stopping hook with configured window and patience."""
         builder = _get_test_builder()
         initial_count = len(builder._post_epoch_hooks)
+
         register_early_stopping(builder, window=5, patience=3)
+
         assert len(builder._post_epoch_hooks) == initial_count + 1
         assert isinstance(builder._post_epoch_hooks[-1], EarlyStopping)
-        return
 
-    def test_register_pruning(self) -> None:
-        """Test pruning hook registration with trial."""
+    def test_register_pruning(self, mocker) -> None:
+        """Register trial callback hook for hyperparameter pruning."""
         builder = _get_test_builder()
         initial_count = len(builder._post_epoch_hooks)
-        mock_trial = MagicMock()
+        mock_trial = mocker.Mock()
+
         register_pruning(builder, trial=mock_trial)
+
         assert len(builder._post_epoch_hooks) == initial_count + 1
         assert isinstance(builder._post_epoch_hooks[-1], TrialCallback)
-        return

@@ -29,6 +29,7 @@ class Preprocessor:
     std: torch.Tensor
 
     def __init__(self) -> None:
+        """Initialize."""
         cfg = Experiment.get_config()
         self.normalize = cfg.data.preprocess.normalize
         self.mean = torch.zeros(1)

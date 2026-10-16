@@ -1,0 +1,9 @@
+defaults:
+  - autoencoding: autoencoding
+  - classification: signal
+  - user: user
+  - data: signal
+  - _self_
+
+variation:
+final: false

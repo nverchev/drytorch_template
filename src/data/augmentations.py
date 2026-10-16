@@ -20,6 +20,9 @@ def random_noise(*, clip: float = 0.05, sigma: float = 0.01) -> Callable[[torch.
     Args:
         clip: maximum absolute value for noise clipping.
         sigma: standard deviation of Gaussian noise.
+
+    Returns:
+        closure that applies clipped Gaussian noise to a tensor.
     """
 
     def _add_noise(features: torch.Tensor) -> torch.Tensor:
@@ -32,18 +35,32 @@ def random_noise(*, clip: float = 0.05, sigma: float = 0.01) -> Callable[[torch.
 
 
 class Augmenter:
-    """Augmentation class for feature transformations."""
+    """Apply feature augmentations to training samples.
+
+    Attributes:
+        add_noise: Callable adding Gaussian noise to features.
+        noise: Noise standard deviation.
+    """
 
     add_noise: Final[Callable[[torch.Tensor], torch.Tensor]]
     noise: Final[float]
 
     def __init__(self) -> None:
+        """Initialize."""
         cfg = Experiment.get_config()
         self.noise = cfg.data.augmentation.noise
         self.add_noise = random_noise(sigma=self.noise)
         return
 
     def __call__(self, features: torch.Tensor, /) -> torch.Tensor:
+        """Apply noise augmentation to features when noise is enabled.
+
+        Args:
+            features: input feature tensor.
+
+        Returns:
+            augmented or unchanged feature tensor.
+        """
         if self.noise:
             features = self.add_noise(features)
 
@@ -51,5 +68,9 @@ class Augmenter:
 
 
 def get_augmenter() -> Augmenter:
-    """Build and return an Augmenter from configuration."""
+    """Build and return an Augmenter from configuration.
+
+    Returns:
+        configured Augmenter instance.
+    """
     return Augmenter()

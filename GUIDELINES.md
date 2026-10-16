@@ -6,7 +6,7 @@ the configuration, the run names and where runs are stored.
 
 ## Models
 
-drytorch records the representation of the module as the architecture of the
+DRYTorch records the representation of the module as the architecture of the
 model (`architecture.yaml` in the run's metadata). The representation lists the
 modules, so a model documents itself only as far as it is made of modules.
 
@@ -55,77 +55,73 @@ not the flattening or the activation between them.
 
 ## Configuration
 
-The run records its configuration, so the configuration must say exactly what
-the run did.
+The code must be as configurable as possible, so that the settings alone can
+document the experiment.
 
 ### Settings
 
-- Write the value of every setting in the YAML files, even when the dataclass
-  has a default: Hydra accepts an override only for a key that a file already
-  contains (see [Overrides](README.md#overrides)). Do not leave a value empty
-  for the code to fill with a constant: the recorded configuration would then
-  show an empty value instead of the setting used.
-- Remove options that nothing reads. A recorded option suggests that it had an
-  effect.
-- Make the dataclasses of the specifications frozen. Change a configuration
-  with overrides (`get_config_all(overrides=[...])`) or with
-  `dataclasses.replace`, never by assignment, so the recorded configuration
-  is the one the run used.
-- List the choices of a setting in an `enum.StrEnum` with upper-case member
-  names that take `enum.auto()`: `SYNTHETIC = enum.auto()`. pydantic reads a
-  choice by its value, and `enum.auto()` makes the value the lower-case name,
-  so the YAML file and what the run prints read `synthetic`. Write the value
-  out only when it must match a name outside the code, such as a folder of the
-  dataset or a key in a saved file.
-- Put the settings that change only the evaluation or the plots, not what is
-  trained, in a group whose overrides stay out of the run name, as `user`
-  does: add the group to the filter in `get_variation`
-  (`src/config/experiment.py`). A model evaluated with other settings then
-  keeps the name of the run that trained it. PCGen does this with its
-  `evaluation` group.
+- Write the value of every setting in the YAML files, even when the dataclass has a default.
+- Make the dataclasses of the specifications frozen.
+- Use `enum.StrEnum` for string options: `enum.auto()` maps upper-case members
+  to lower-case YAML values (`SYNTHETIC = enum.auto()`). Set explicit values
+  only when matching external names.
+- Make sure that settings in `user` do not impact the experiment. For example,
+  keep the total `batch_size` in the training configuration and divide it across
+  `n_subprocesses`, so changing execution resources does not alter training dynamics.
 - Leave the seed unset by default (`seed:` in `user/user.yaml`), and set it for
   the runs that must be repeatable.
 
 ### File names
 
-- Give each configuration file a name that says what it holds without its
-  folder: editor tabs, defaults lists and overrides show only the name, and a
-  generic name hides which settings it changes. `adam.yaml`, `cosine.yaml`,
-  `linear.yaml` and the name of a dataset are clear on their own;
-  `default.yaml`, `standard.yaml` or a setting's name repeated in several
-  groups (`vqvae.yaml` in `model/`, `train/` and `loss/`) are not.
-- When a name would be generic, add the group: `train_vqvae.yaml`,
-  `model_vqvae.yaml`. A group with a single file takes the group's name:
-  `train/train.yaml`.
-- The entry configurations, directly in `configs/experiment`, are not options
-  of a group and keep plain names: `mlp_classifier.yaml` (see
-  [Entry configurations](README.md#entry-configurations)).
+- Give each configuration file a descriptive name that is clear on its own:
+  editor tabs, defaults lists, and overrides show only the filename. Avoid
+  generic names like `default.yaml` or `standard.yaml`; prefer file naming
+  patterns (e.g., `train_vae.yaml`, `model_unet.yaml`) and use single-file
+  groups for obvious cases (e.g., `train/train.yaml`).
+
 
 ## Experiments
 
-- Give a setup whose runs should not be mixed with the others its own entry
-  configuration, not only a variation: its runs then get their own folder
-  (see [Folders](README.md#folders)), and the run name does not need to repeat
-  the configuration.
-- Pass `cfg.par_dir` as the parent directory of every `Experiment`, so that
-  every script stores its runs in the folder of their entry configuration.
-- Compare a run with published results only under the same protocol
-  (see [`final`](README.md#overrides)): `final=false` and `final=true` give
-  different numbers for the same model.
+- **Isolate one change at a time:** Keep data splits and augmentations
+  identical across compared runs so differences reflect only the model or
+  hyperparameter change. Keep the seed random when developing the project
+  and set it for the final evaluation of the selected model.
+- **Compare variations on the same setup with overrides:** When exploring
+  hyperparameters, activations, or model architectures on the same dataset
+  and task, use overrides on the same entry configuration. Overrides are
+  recorded in the run name and share the same experiment folder, making them
+  directly comparable side-by-side in trackers.
+- **Separate non-comparable setups into entry configurations:** Use distinct
+  entry configurations for setups that cannot be directly compared (i.e.
+  different datasets paired with their own network architectures and training
+  schemes). Each entry configuration switches the entire configuration tree and
+  keeps its runs in an isolated folder (`experiments/v<version>/<config_name>/`).
+- **Bump versions when baselines improve:** In `pyproject.toml`, bump the minor
+  part (`0.1` → `0.2`) after hyperparameter tuning or adopting a better model,
+  and the major part (`0.2` → `1.0`) after breaking specification changes. This
+  archives earlier experiments cleanly without overwriting past runs.
+- **Compare models on validation (`final=false`):** Compare models and
+  variations strictly under `final=false` on the validation split. Reserve
+  `final=true` only for the final benchmark evaluation of the selected model on
+  the test set.
+
 
 ## Pipelines
 
-Some projects train several models in sequence, each using the ones before it.
+Some projects run several training phases or train multiple models in sequence,
+each phase using the ones before it.
 
-- Give each model its own subexperiment (see
-  [Groups and setting names](README.md#groups-and-setting-names)).
-- Run every stage with the same overrides, apart from `user.*`: a later stage
-  finds the checkpoint of an earlier model by the run name, which the
-  overrides form. VAEX finds the classifier this way.
-- When tuning a stage that uses a trained model, load that model once and reuse
-  it in every trial: register it in each trial's experiment with
-  `register_model`, and remove it with `unregister_model` when the trial ends.
-  PCGen's `tune_w_autoencoder.py` does this.
+- Give each phase or model its own configuration section (see [Phases](README.md#phases)).
+  In this template, `signal_classifier` demonstrates this pattern with an `autoencoding`
+  phase followed by a `classification` probe.
+- Give each phase its own training script. A later phase resumes the run of
+  the earlier one and loads its checkpoint.
+- Run every phase with the same overrides, apart from `user.*`: the overrides
+  form the run name, and a later phase finds the earlier checkpoint under it.
+- To change only a later phase, clone the experiment of the earlier phase under
+  the new name with `clone_experiment.py` instead of training it again (see
+  [Reusing a phase](README.md#reusing-a-phase)).
+- Use one tuning script per phase in projects with several phases.
 
 ## Visualization
 
@@ -133,3 +129,24 @@ Some projects train several models in sequence, each using the ones before it.
   `drytorch.lib.loading.take_from_dataset(dataset, indices=...)`, with the
   indices in the configuration, so that every run shows the same samples and
   the samples arrive already batched and on the device.
+
+## Style
+
+- This template follows the style from DRYTorch
+  [STYLE](https://github.com/nverchev/drytorch/blob/main/STYLE.md), but others
+  are also possible.
+- Tests maintain a simplified, flattened structure in `tests/units/` and adhere
+  to STYLE rules: Arrange-Act-Assert layout, tests concluding directly on
+  assertions rather than returning, and behavior-focused docstrings.
+- Maintain a consistent coding and documentation style across the project.
+
+### Tests
+
+- Every test runs inside the run of the autouse `active_experiment` fixture in
+  [tests/conftest.py](tests/conftest.py). Tests never create an `Experiment` or
+  call `create_run`.
+- A test that needs other settings uses `@pytest.mark.parametrize('overrides', [[...], ...])`.
+  pytest replaces the `overrides` fixture with each value. Never loop over
+  settings inside a test.
+- A test reads the configuration through the `active_experiment` fixture
+  (`active_experiment.config`) or `Experiment.get_config()`.

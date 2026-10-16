@@ -9,7 +9,7 @@ Every drytorch project defines:
 from __future__ import annotations
 
 import dataclasses
-from typing import NamedTuple
+from typing import NamedTuple, override
 
 import torch
 
@@ -45,9 +45,11 @@ class Targets(NamedTuple):
 
     Attributes:
         label: Long tensor ``(B,)`` with class indices in ``[0, n_classes)``.
+        features: Target features for autoencoder reconstruction.
     """
 
     label: torch.Tensor
+    features: torch.Tensor | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -55,18 +57,54 @@ class Targets(NamedTuple):
 # ---------------------------------------------------------------------------
 
 
-@dataclasses.dataclass(slots=True)
+@dataclasses.dataclass(init=False, slots=True)
 class Outputs:
     """Model outputs consumed by the loss and metrics.
 
+    The fields a model does not produce stay unset, so an objective that reads
+    one of them fails where the model and the objective disagree.
+
     Attributes:
         logits: Raw class scores ``(B, n_classes)``.
+        reconstruction: Reconstructed features.
+        encodings: Latent representations ``(B, latent_dim)``.
     """
 
     logits: torch.Tensor
+    reconstruction: torch.Tensor
+    encodings: torch.Tensor
+
+    def __init__(
+        self,
+        *,
+        logits: torch.Tensor | None = None,
+        reconstruction: torch.Tensor | None = None,
+        encodings: torch.Tensor | None = None,
+    ) -> None:
+        """Initialize.
+
+        Args:
+            logits: raw class scores ``(B, n_classes)``.
+            reconstruction: reconstructed features.
+            encodings: latent representations ``(B, latent_dim)``.
+        """
+        if logits is not None:
+            self.logits = logits
+
+        if reconstruction is not None:
+            self.reconstruction = reconstruction
+
+        if encodings is not None:
+            self.encodings = encodings
+
+        return
 
     def update(self, other: Outputs, /) -> None:
-        """Update outputs."""
+        """Update outputs with attributes from another Outputs instance.
+
+        Args:
+            other: instance to copy attributes from.
+        """
         for attribute in other.__slots__:
             try:
                 setattr(self, attribute, getattr(other, attribute))
@@ -75,15 +113,13 @@ class Outputs:
 
         return
 
+    @override
     def __repr__(self) -> str:
         parts = []
         for name in self.__slots__:
-            if hasattr(self, name):
-                try:
-                    parts.append(f'{name}={getattr(self, name)!r}')
-                except Exception:
-                    parts.append(f'{name}=<error>')
-            else:
+            try:
+                parts.append(f'{name}={getattr(self, name)!r}')
+            except AttributeError:
                 parts.append(f'{name}=<uninitialized>')
 
         return f'{self.__class__.__name__}({", ".join(parts)})'

@@ -11,7 +11,7 @@ from drytorch.core import tracking
 from drytorch.trackers import logging
 
 from src.config.environment import DEBUG_MODE, get_current_branch
-from src.config.specs import AllConfig
+from src.config.specs import ExperimentConfig
 from src.trackers import ClassificationLogger
 
 
@@ -23,11 +23,11 @@ __all__ = [
 ]
 
 
-class Experiment(drytorch.Experiment[AllConfig]):
+class Experiment(drytorch.Experiment[ExperimentConfig]):
     """Specify specification class for configurations."""
 
 
-def get_trackers(cfg: AllConfig, debug_mode: bool = DEBUG_MODE) -> list[tracking.Tracker]:
+def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[tracking.Tracker]:
     """Instantiate the experiment trackers requested in *cfg*.
 
     Trackers are only activated outside debug mode.  In debug mode an empty

@@ -1,0 +1,6 @@
+defaults:
+  - train: train
+  - model: model
+  - _self_
+
+name: autoencoding

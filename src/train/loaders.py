@@ -3,8 +3,13 @@
 from drytorch import DataLoader
 
 from src.data.dataset import get_datasets
+from src.data.derived_dataset import EncodedDataset
 
-__all__ = ['get_loaders']
+__all__ = [
+    'get_encoded_loader',
+    'get_encoded_loaders',
+    'get_loaders',
+]
 
 
 def get_loaders(
@@ -24,4 +29,45 @@ def get_loaders(
     train_dataset, eval_dataset = get_datasets()
     train_loader = DataLoader(train_dataset, batch_size=batch_size, n_workers=n_workers)
     eval_loader = DataLoader(eval_dataset, batch_size=batch_size, n_workers=n_workers)
+    return train_loader, eval_loader
+
+
+def get_encoded_loader(
+    split: EncodedDataset,
+    *,
+    batch_size: int,
+) -> DataLoader:
+    """Return a DataLoader for an encoded dataset partition.
+
+    The codes come out of the autoencoder already on the device, so they
+    are not pinned and not loaded in another process.
+
+    Args:
+        split: encoded dataset partition.
+        batch_size: number of samples per batch.
+
+    Returns:
+        DataLoader drawing batches without memory pinning or worker processes.
+    """
+    return DataLoader(split, batch_size=batch_size, n_workers=0, pin_memory=False)
+
+
+def get_encoded_loaders(
+    train_dataset: EncodedDataset,
+    eval_dataset: EncodedDataset,
+    *,
+    batch_size: int,
+) -> tuple[DataLoader, DataLoader]:
+    """Return (train_loader, eval_loader) for encoded dataset representations.
+
+    Args:
+        train_dataset: encoded training dataset.
+        eval_dataset: encoded evaluation dataset.
+        batch_size: number of samples per batch.
+
+    Returns:
+        A tuple of (train_loader, eval_loader).
+    """
+    train_loader = get_encoded_loader(train_dataset, batch_size=batch_size)
+    eval_loader = get_encoded_loader(eval_dataset, batch_size=batch_size)
     return train_loader, eval_loader

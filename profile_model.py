@@ -8,11 +8,11 @@ Usage::
 import pathlib
 import torch
 
-from src.config import AllConfig, Experiment, hydra_main
+from src.config import ExperimentConfig, Experiment, hydra_main
 from src.data.dataset import get_datasets
 from src.data.structures import Inputs, Targets
-from src.module import get_model
-from src.train import get_loss
+from src.module import get_classifier
+from src.train import get_classification_loss
 from src.utils.profiling import profile_backward, profile_forward, save_parameters
 
 
@@ -29,7 +29,7 @@ def _get_profiling_dir() -> pathlib.Path:
     return profile_dir
 
 
-def run_profiling(cfg: AllConfig) -> None:
+def run_profiling(cfg: ExperimentConfig) -> None:
     """Set up model, create inputs, and profile forward and backward passes."""
     device = cfg.user.device
     if device is None:
@@ -40,14 +40,14 @@ def run_profiling(cfg: AllConfig) -> None:
     batch_inputs = Inputs(features=inputs.features.unsqueeze(0).to(device))
     batch_targets = Targets(label=targets.label.unsqueeze(0).to(device))
 
-    model = get_model()
-    model.to(device)
+    classifier = get_classifier()
+    classifier.to(device)
     profile_dir = _get_profiling_dir()
-    save_parameters(model, profile_dir)
+    save_parameters(classifier, profile_dir)
 
-    loss_fn = get_loss()
+    loss_fn = get_classification_loss()
 
-    outputs = profile_forward(model, batch_inputs, device=device, profile_dir=profile_dir)
+    outputs = profile_forward(classifier, batch_inputs, device=device, profile_dir=profile_dir)
     loss = loss_fn.calculate(outputs, batch_targets)['CrossEntropy'].sum()
     profile_backward(loss, device=device, profile_dir=profile_dir)
     return
@@ -59,7 +59,7 @@ def get_databuilder_classes() -> int:
     return get_databuilder().n_classes
 
 
-def setup_and_profile(cfg: AllConfig) -> None:
+def setup_and_profile(cfg: ExperimentConfig) -> None:
     """Initialise experiment run and launch profiling."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.par_dir, tags=cfg.tags)
     with exp.create_run(resume=True, record=False):
@@ -69,7 +69,7 @@ def setup_and_profile(cfg: AllConfig) -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Profiling entry point."""
     setup_and_profile(cfg)
     return

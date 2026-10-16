@@ -1,0 +1,6 @@
+defaults:
+  - train: signal
+  - model: linear
+  - _self_
+
+name: classification

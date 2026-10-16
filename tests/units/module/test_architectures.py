@@ -1,40 +1,81 @@
-"""Tests for module architectures and model factory."""
+"""Tests for module architectures and model factories."""
 
 import torch
 
-from src.module import get_model
-from src.module.architectures import MLPClassifier, MLPResClassifier
+from src.config import experiment, hydra
+from src.data import structures
+from src.module import (
+    CNNResAutoencoder,
+    LinearClassifier,
+    MLPClassifier,
+    get_autoencoder,
+    get_classifier,
+)
 
 
 class TestMLPClassifier:
     """Test MLPClassifier forward pass and output dimensions."""
 
     def test_mlp_classifier_forward(self, sample_batch, n_classes) -> None:
-        """Test MLPClassifier forward pass output shape."""
+        """Produce logits matching expected class dimensions."""
         inputs, _ = sample_batch
-        model = MLPClassifier()
-        out = model(inputs)
+        classifier = MLPClassifier()
+
+        out = classifier(inputs)
+
+        assert out.logits is not None
         assert out.logits.shape == (8, n_classes)
-        return
 
 
-class TestMLPResClassifier:
-    """Test MLPResClassifier forward pass and residual connections."""
+class TestCNNResAutoencoder:
+    """Test CNNResAutoencoder forward pass and reconstruction."""
 
-    def test_mlp_res_classifier_forward(self, sample_batch, n_classes) -> None:
-        """Test MLPResClassifier forward pass output shape."""
-        inputs, _ = sample_batch
-        model = MLPResClassifier()
-        out = model(inputs)
-        assert out.logits.shape == (8, n_classes)
-        return
+    def test_cnn_res_autoencoder_forward(self, mocker) -> None:
+        """Produce sequence reconstruction and bottleneck encodings."""
+        cfg = hydra.get_experiment_config('signal_classifier')
+        mocker.patch.object(experiment.Experiment, 'get_config', return_value=cfg)
+        autoencoder = CNNResAutoencoder()
+        ds_cfg = cfg.data.dataset
+        inputs = structures.Inputs(features=torch.randn(8, ds_cfg.in_features, ds_cfg.sequence_length))
+
+        out = autoencoder(inputs)
+
+        assert out.reconstruction is not None
+        assert out.encodings is not None
+        assert out.reconstruction.shape == (8, ds_cfg.in_features, ds_cfg.sequence_length)
+        assert out.encodings.shape == (8, autoencoder.latent_dim)
 
 
-class TestGetModel:
-    """Test model factory function get_model."""
+class TestLinearClassifier:
+    """Test LinearClassifier on encodings."""
 
-    def test_get_model_instantiates_classifier(self) -> None:
-        """Test get_model instantiates correct model subclass."""
-        model = get_model()
-        assert isinstance(model, torch.nn.Module)
-        return
+    def test_linear_classifier_forward(self, mocker) -> None:
+        """Project encoder bottleneck representations to class logits."""
+        cfg = hydra.get_experiment_config('signal_classifier')
+        mocker.patch.object(experiment.Experiment, 'get_config', return_value=cfg)
+        classifier = LinearClassifier()
+        inputs = structures.Inputs(features=torch.randn(8, classifier.in_dim))
+
+        out = classifier(inputs)
+
+        assert out.logits is not None
+        assert out.logits.shape == (8, 4)
+
+
+class TestFactories:
+    """Test phase factory functions get_classifier and get_autoencoder."""
+
+    def test_get_classifier_builds_configured_class(self) -> None:
+        """Instantiate configured classifier PyTorch module."""
+        classifier = get_classifier()
+
+        assert isinstance(classifier, MLPClassifier)
+
+    def test_get_autoencoder_builds_configured_class(self, mocker) -> None:
+        """Instantiate configured autoencoder PyTorch module."""
+        cfg = hydra.get_experiment_config('signal_classifier')
+        mocker.patch.object(experiment.Experiment, 'get_config', return_value=cfg)
+
+        autoencoder = get_autoencoder()
+
+        assert isinstance(autoencoder, CNNResAutoencoder)

@@ -13,7 +13,18 @@ __all__ = ['SyntheticDataset']
 
 
 class SyntheticDataset(DataBuilder):
-    """Synthetic dataset builder generating deterministic non-random samples."""
+    """Synthetic dataset builder generating deterministic non-random samples.
+
+    Attributes:
+        n_classes: Number of distinct target classes.
+        final: Whether the final evaluation protocol is active.
+        in_features: Number of features per sample.
+        preprocessor: Feature scaling preprocessor.
+        n_train_samples: Number of training samples.
+        n_val_samples: Number of validation samples.
+        n_test_samples: Number of test samples.
+        partition_data: Mapping from partition to feature and label tensors.
+    """
 
     n_classes: ClassVar[int] = 3
     final: Final[bool]
@@ -25,6 +36,7 @@ class SyntheticDataset(DataBuilder):
     partition_data: Final[dict[Partitions, tuple[torch.Tensor, torch.Tensor]]]
 
     def __init__(self) -> None:
+        """Initialize."""
         cfg = Experiment.get_config()
         cfg_dataset = cfg.data.dataset
         self.final = cfg.final

@@ -1,0 +1,5 @@
+norm_cls: GroupedNorm
+act_cls: ReLU
+hidden_dims: [16, 32]
+latent_dim: 32
+dropout_rate: 0.0

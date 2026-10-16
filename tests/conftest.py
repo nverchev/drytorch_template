@@ -1,25 +1,35 @@
 """Configuration module with shared test fixtures."""
 
 from collections.abc import Generator
+import pathlib
 
 import pytest
 import torch
 
-from src.config import AllConfig, Experiment, get_config_all
+from src.config import ExperimentConfig, Experiment, get_experiment_config
 from src.data.dataset import get_databuilder
 from src.data.structures import Inputs, Targets
 
 
 @pytest.fixture(scope='package')
-def default_config() -> AllConfig:
-    """Return default AllConfig object."""
-    return get_config_all()
+def default_config() -> ExperimentConfig:
+    """Return the configuration without overrides."""
+    return get_experiment_config()
+
+
+@pytest.fixture
+def overrides() -> list[str]:
+    """Return the overrides of the configuration; a test parametrizes it to change settings."""
+    return []
 
 
 @pytest.fixture(autouse=True)
-def active_experiment(default_config: AllConfig) -> Generator[Experiment]:
-    """Fixture ensuring an active Experiment run is present for all tests."""
-    exp = Experiment(default_config, name='test_exp', par_dir=default_config.user.path.version_dir)
+def active_experiment(
+    overrides: list[str], default_config: ExperimentConfig, tmp_path: pathlib.Path
+) -> Generator[Experiment]:
+    """Provide an active run of the configuration with the overrides, for every test."""
+    config = get_experiment_config(overrides=overrides) if overrides else default_config
+    exp = Experiment(config, name='test_exp', par_dir=tmp_path)
     with exp.create_run(record=False):
         yield exp
 

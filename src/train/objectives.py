@@ -30,8 +30,10 @@ __all__ = [
     'AggregatedAccuracy',
     'ConfusionMatrixAccumulator',
     'get_accuracy',
+    'get_autoencoder_loss',
+    'get_classification_loss',
     'get_cross_entropy',
-    'get_loss',
+    'get_reconstruction_loss',
 ]
 
 
@@ -44,6 +46,9 @@ def get_accuracy() -> Metric[Outputs, Targets]:
     """Return top-1 per-sample accuracy metric."""
 
     def _accuracy(outputs: Outputs, targets: Targets) -> torch.Tensor:
+        if outputs.logits is None:
+            raise ValueError('Logits are required to compute accuracy.')
+
         return (outputs.logits.argmax(dim=-1) == targets.label).float()
 
     return Metric(_accuracy, name='Accuracy')
@@ -54,14 +59,40 @@ def get_cross_entropy() -> LossWithMetrics[Outputs, Targets]:
     ce = torch.nn.CrossEntropyLoss(reduction='none')
 
     def _cross_entropy(outputs: Outputs, targets: Targets) -> torch.Tensor:
+        if outputs.logits is None:
+            raise ValueError('Logits are required to compute cross-entropy.')
+
         return ce(outputs.logits, targets.label)
 
     return Loss(_cross_entropy, name='CrossEntropy')
 
 
-def get_loss() -> LossWithMetrics[Outputs, Targets]:
-    """Return main loss objective watching per-sample accuracy during training."""
+def get_reconstruction_loss() -> LossWithMetrics[Outputs, Targets]:
+    """Return mean squared error reconstruction loss objective."""
+    mse = torch.nn.MSELoss(reduction='none')
+
+    def _reconstruction(outputs: Outputs, targets: Targets) -> torch.Tensor:
+        if outputs.reconstruction is None or targets.features is None:
+            raise ValueError('Reconstruction and target features are required.')
+
+        target_features = targets.features
+        if target_features.ndim == 2 and outputs.reconstruction.ndim == 3:
+            target_features = target_features.unsqueeze(1)
+
+        dims = tuple(range(1, outputs.reconstruction.ndim))
+        return mse(outputs.reconstruction, target_features).mean(dim=dims)
+
+    return Loss(_reconstruction, name='MSE')
+
+
+def get_classification_loss() -> LossWithMetrics[Outputs, Targets]:
+    """Return classification loss objective watching per-sample accuracy."""
     return join(get_cross_entropy(), get_accuracy())
+
+
+def get_autoencoder_loss() -> LossWithMetrics[Outputs, Targets]:
+    """Return autoencoder reconstruction loss objective."""
+    return get_reconstruction_loss()
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +186,9 @@ class AggregatedAccuracy(Objective[Outputs, Targets]):
         return {self._KEY: matrix}
 
     def _calculate_confusion_matrix(self, outputs: Outputs, targets: Targets) -> Tensor:
+        if outputs.logits is None:
+            raise ValueError('Logits are required to compute confusion matrix.')
+
         preds = outputs.logits.argmax(dim=-1)
         labels = targets.label
         indices = labels * self.n_classes + preds

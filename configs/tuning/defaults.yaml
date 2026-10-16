@@ -7,4 +7,3 @@ db_name: optimization
 config_name: mlp_classifier  # the experiment configuration the trials start from
 overrides: []  # fixed overrides of every trial
 n_epochs: 3
-subexperiment: classification

@@ -1,0 +1,6 @@
+defaults:
+  - architecture: linear
+  - _self_
+
+class_name: linear_classifier
+ema_decay: 0.9

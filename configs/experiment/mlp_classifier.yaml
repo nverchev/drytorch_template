@@ -1,7 +1,7 @@
 defaults:
   - classification: classification
   - user: user
-  - data: data
+  - data: synthetic
   - _self_
 
 variation:

@@ -4,14 +4,14 @@ study_name:
 n_trials: 10
 
 params:
-  subexperiment.train.learn.lr:
+  classification.train.learn.lr:
     suggest: suggest_float
     settings:
       low: 1e-4
       high: 1e-2
       log: true
 
-  subexperiment.train.learn.opt_settings.weight_decay:
+  classification.train.learn.opt_settings.weight_decay:
     suggest: suggest_float
     settings:
       low: 1e-6

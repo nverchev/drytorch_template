@@ -2,10 +2,18 @@
 
 Root config hierarchy::
 
-    AllConfig
-    ├── classification: ExperimentConfig
+    ExperimentConfig
+    ├── classification: ClassificationConfig
     │   ├── name
-    │   ├── model: ModelConfig
+    │   ├── model: ClassifierModelConfig
+    │   │   └── architecture: LinearArchitectureConfig
+    │   └── train: TrainingConfig
+    │       ├── learn: LearningConfig
+    │       │   └── scheduler: SchedulerConfig
+    │       └── early_stopping: EarlyStoppingConfig
+    ├── autoencoding: AutoencodingConfig | None
+    │   ├── name
+    │   ├── model: AutoencoderModelConfig
     │   │   └── architecture: LinearArchitectureConfig
     │   └── train: TrainingConfig
     │       ├── learn: LearningConfig
@@ -17,7 +25,7 @@ Root config hierarchy::
         ├── path: PathSpecs          ← populated from .env
         └── hydra: HydraSettings     ← populated at runtime
 
-For projects with multiple subexperiments, add one ExperimentConfig per subexperiment directly to AllConfig.
+For projects with multiple phases, add one PhaseConfig per phase directly to ExperimentConfig.
 """
 
 import dataclasses
@@ -34,7 +42,7 @@ from pydantic.dataclasses import dataclass
 
 from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
 from src.config.torch import ActClass, GroupedNorm, NormClass, get_activation_cls, get_norm_cls, get_optim_cls, set_seed
-from src.config.options import GradOp, ClipCriterion, Schedulers, Models, Datasets
+from src.config.options import Autoencoders, Classifiers, ClipCriterion, Datasets, GradOp, Schedulers
 
 
 ActivationClass = Annotated[ActClass, BeforeValidator(get_activation_cls)]
@@ -74,19 +82,35 @@ class LinearArchitectureConfig(BaseArchitectureConfig):
 
     hidden_dims: tuple[StrictlyPositiveInt, ...] = (256, 128)
     dropout_rate: PositiveFloat = 0.0
+    latent_dim: StrictlyPositiveInt = 32
 
 
 @dataclass(frozen=True)
-class ModelConfig:
-    """Model class selector and non-architectural settings.
+class ClassifierModelConfig:
+    """Classifier model class selector and non-architectural settings.
 
     Attributes:
-        class_name: Which architecture class to instantiate.
+        class_name: Which classifier architecture class to instantiate.
         architecture: Architecture-specific hyperparameters.
         ema_decay: Exponential moving average decay for the EMA model copy.
     """
 
-    class_name: Models = Models.MLP_CLASSIFIER
+    class_name: Classifiers = Classifiers.MLP_CLASSIFIER
+    architecture: LinearArchitectureConfig = dataclasses.field(default_factory=LinearArchitectureConfig)
+    ema_decay: float = 0.999
+
+
+@dataclass(frozen=True)
+class AutoencoderModelConfig:
+    """Autoencoder model class selector and non-architectural settings.
+
+    Attributes:
+        class_name: Which autoencoder architecture class to instantiate.
+        architecture: Architecture-specific hyperparameters.
+        ema_decay: Exponential moving average decay for the EMA model copy.
+    """
+
+    class_name: Autoencoders = Autoencoders.CNN_RES_AUTOENCODER
     architecture: LinearArchitectureConfig = dataclasses.field(default_factory=LinearArchitectureConfig)
     ema_decay: float = 0.999
 
@@ -104,6 +128,7 @@ class DatasetConfig:
         name: Name of the dataset.
         selected_classes: Subset of class names to include (empty uses all).
         in_features: Feature dimension for each sample.
+        sequence_length: Length of sequence or signal samples.
         n_train_samples: Number of training split samples.
         n_val_samples: Number of validation split samples.
         n_test_samples: Number of test split samples.
@@ -112,6 +137,7 @@ class DatasetConfig:
     name: Datasets = Datasets.SYNTHETIC
     selected_classes: list[str] = dataclasses.field(default_factory=list)
     in_features: StrictlyPositiveInt = 64
+    sequence_length: StrictlyPositiveInt = 128
     n_train_samples: StrictlyPositiveInt = 1000
     n_val_samples: StrictlyPositiveInt = 200
     n_test_samples: StrictlyPositiveInt = 200
@@ -260,17 +286,49 @@ class TrainingConfig:
 
 
 # ---------------------------------------------------------------------------
-# ADAPT: Add an ExperimentConfig subclass when you need per-stage configs
+# ADAPT: Add a PhaseConfig subclass for each phase
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
-class ExperimentConfig:
-    """Specification for a single subexperiment."""
+class PhaseConfig:
+    """Specification for a single phase.
+
+    Attributes:
+        name: Name of the phase.
+        model: Model and architecture configuration.
+        train: Training loop and learning schedule configuration.
+    """
 
     name: str
-    model: ModelConfig
+    model: ClassifierModelConfig | AutoencoderModelConfig
     train: TrainingConfig
+
+
+@dataclass(frozen=True)
+class ClassificationConfig(PhaseConfig):
+    """Specification for the classifier phase.
+
+    Attributes:
+        name: Name of the phase.
+        model: Classifier model and architecture configuration.
+        train: Training loop and learning schedule configuration.
+    """
+
+    model: ClassifierModelConfig
+
+
+@dataclass(frozen=True)
+class AutoencodingConfig(PhaseConfig):
+    """Specification for the autoencoder phase.
+
+    Attributes:
+        name: Name of the phase.
+        model: Autoencoder model and architecture configuration.
+        train: Training loop and learning schedule configuration.
+    """
+
+    model: AutoencoderModelConfig
 
 
 # ---------------------------------------------------------------------------
@@ -355,7 +413,7 @@ class UserSettings:
     trackers: TrackerList
     seed: int | None
     checkpoint_every: PositiveInt
-    torch_compile: bool = True
+    torch_compile: bool = False
     load: int = 0
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
@@ -379,11 +437,12 @@ class UserSettings:
 
 
 @dataclass(frozen=True)
-class AllConfig:
+class ExperimentConfig:
     """Root configuration object for all experiment settings.
 
     Attributes:
-        classification: Classification subexperiment configuration.
+        classification: Classification phase configuration.
+        autoencoding: Autoencoding phase configuration.
         user: User-specific options and runtime preferences.
         data: Data pre-processing and dataset configuration.
         final: If True, uses validation data for training and test data for evaluation.
@@ -391,10 +450,11 @@ class AllConfig:
         tags: List of tags describing active configuration overrides.
     """
 
-    classification: ExperimentConfig
+    classification: ClassificationConfig
     user: UserSettings
     data: DataConfig
     final: bool
+    autoencoding: AutoencodingConfig | None = None
     variation: str | None = None
     tags: list[str] = dataclasses.field(default_factory=list)
     version: str = dataclasses.field(default=f'v{VERSION}', init=False)

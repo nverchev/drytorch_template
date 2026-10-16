@@ -3,10 +3,11 @@
 import enum
 
 __all__ = [
+    'Autoencoders',
+    'Classifiers',
     'ClipCriterion',
     'Datasets',
     'GradOp',
-    'Models',
     'Schedulers',
 ]
 
@@ -18,13 +19,20 @@ class Datasets(enum.StrEnum):
     """Dataset choices."""
 
     SYNTHETIC = enum.auto()
+    SIGNAL = enum.auto()
 
 
-class Models(enum.StrEnum):
-    """Model architectures."""
+class Classifiers(enum.StrEnum):
+    """Classifier architectures."""
 
     MLP_CLASSIFIER = enum.auto()
-    MLP_RES_CLASSIFIER = enum.auto()
+    LINEAR_CLASSIFIER = enum.auto()
+
+
+class Autoencoders(enum.StrEnum):
+    """Autoencoder architectures."""
+
+    CNN_RES_AUTOENCODER = enum.auto()
 
 
 # ---------------------------------------------------------------------------

@@ -2,8 +2,8 @@
 
 Usage::
 
-    uv run tune_classifier.py
-    uv run tune_classifier.py subexperiment=classification tune=learn
+    uv run tune_mlp_classifier.py
+    uv run tune_mlp_classifier.py tune=learn
 """
 
 import pathlib
@@ -18,21 +18,21 @@ from omegaconf import DictConfig
 from drytorch.contrib.optuna import get_final_value, suggest_overrides
 from drytorch.core.exceptions import ConvergenceError
 
-from src.config import ConfigPath, Experiment, get_config_all, set_tuning_logging
+from src.config import ConfigPath, Experiment, get_experiment_config, set_tuning_logging
 from src.utils.tuning import impute_failed_trial, impute_pruned_trial, get_study_name, log_study_settings
 
 from train_classifier import train_classification
 
 
-def set_objective(tune_cfg: DictConfig, subexp_name: str) -> Callable[[optuna.Trial], float]:
+def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
     """Set the objective function following the study configuration."""
 
     def objective(trial: optuna.Trial) -> float:
         """Set up the experiment and launch the training cycle."""
-        overrides = [o.replace('subexperiment.', f'{subexp_name}.') for o in suggest_overrides(tune_cfg, trial)]
+        overrides = suggest_overrides(tune_cfg, trial)
         seed = 'null' if tune_cfg.seed is None else tune_cfg.seed
-        overrides += [f'{subexp_name}.train.n_epochs={tune_cfg.n_epochs}', f'user.seed={seed}']
-        trial_cfg = get_config_all(tune_cfg.config_name, overrides=[*tune_cfg.overrides, *overrides])
+        overrides += [f'classification.train.n_epochs={tune_cfg.n_epochs}', f'user.seed={seed}']
+        trial_cfg = get_experiment_config(tune_cfg.config_name, overrides=[*tune_cfg.overrides, *overrides])
 
         exp = Experiment(trial_cfg, name=trial_cfg.name, par_dir=trial_cfg.par_dir, tags=trial_cfg.tags)
         with exp.create_run(record=False):
@@ -56,8 +56,12 @@ def set_objective(tune_cfg: DictConfig, subexp_name: str) -> Callable[[optuna.Tr
 @hydra.main(version_base=None, config_path=ConfigPath.TUNING.absolute(), config_name='defaults')
 def main(tune_cfg: DictConfig) -> None:
     """Set up the study and launch optimization."""
+    base_cfg = get_experiment_config(tune_cfg.config_name)
+    if base_cfg.autoencoding is not None:
+        msg = 'Tuning supports single-phase configurations; projects with phases use one tuning script per phase.'
+        raise ValueError(msg)
+
     set_tuning_logging()
-    subexp_name = str(tune_cfg.subexperiment)
     pathlib.Path(tune_cfg.db_location).mkdir(exist_ok=True)
 
     if tune_cfg.tune.use_pruner:
@@ -72,12 +76,12 @@ def main(tune_cfg: DictConfig) -> None:
         pruner = optuna.pruners.NopPruner()
 
     sampler = optuna.samplers.GPSampler(warn_independent_sampling=False)
-    study_name = get_study_name(tune_cfg.config_name, tune_cfg.tune.study_name + f'_{subexp_name}', tune_cfg.overrides)
+    study_name = get_study_name(tune_cfg.config_name, tune_cfg.tune.study_name, tune_cfg.overrides)
     study = optuna.create_study(
         study_name=study_name, storage=tune_cfg.storage, sampler=sampler, pruner=pruner, load_if_exists=True
     )
     log_study_settings(study, tune_cfg)
-    study.optimize(set_objective(tune_cfg, subexp_name), n_trials=tune_cfg.tune.n_trials)
+    study.optimize(set_objective(tune_cfg), n_trials=tune_cfg.tune.n_trials)
     return
 
 

@@ -1,0 +1,5 @@
+defaults:
+  - dataset: signal
+  - preprocess: preprocess
+  - augmentation: augmentation
+  - _self_

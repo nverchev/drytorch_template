@@ -5,7 +5,7 @@ from drytorch.core import protocols as p
 from drytorch.lib import gradient_ops, schedulers
 
 from src.config.options import ClipCriterion, GradOp, Schedulers
-from src.config.specs import ExperimentConfig, LearningConfig, SchedulerConfig
+from src.config.specs import PhaseConfig, LearningConfig, SchedulerConfig
 
 __all__ = [
     'get_grad_op',
@@ -19,6 +19,12 @@ def get_scheduler(config: SchedulerConfig, /) -> schedulers.AbstractScheduler:
 
     Args:
         config: scheduler configuration parameters.
+
+    Returns:
+        instantiated learning rate scheduler.
+
+    Raises:
+        ValueError: if scheduler function is not supported.
     """
     if config.function == Schedulers.CONSTANT:
         scheduler: schedulers.AbstractScheduler = schedulers.ConstantScheduler()
@@ -45,6 +51,9 @@ def get_grad_op(config: LearningConfig, /) -> p.GradientOpProtocol:
 
     Args:
         config: learning configuration parameters.
+
+    Returns:
+        instantiated gradient operation.
     """
     if config.grad_op == GradOp.GRAD_PARAM_NORMALIZER:
         return gradient_ops.GradParamNormalizer()
@@ -75,11 +84,14 @@ def get_grad_op(config: LearningConfig, /) -> p.GradientOpProtocol:
     return gradient_ops.NoOp()
 
 
-def get_learning_schema(exp_cfg: ExperimentConfig, /) -> LearningSchema:
+def get_learning_schema(exp_cfg: PhaseConfig, /) -> LearningSchema:
     """Return the configured learning schema.
 
     Args:
-        exp_cfg: subexperiment configuration object.
+        exp_cfg: experiment configuration object.
+
+    Returns:
+        configured learning schema instance.
     """
     config = exp_cfg.train.learn
     return LearningSchema(

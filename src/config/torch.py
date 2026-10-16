@@ -22,9 +22,14 @@ type NormClass = type[nn.Module]
 
 
 class GroupedNorm(nn.GroupNorm):
-    """GroupNorm subclass that automatically computes the optimal number of groups for num_channels."""
+    """Group normalization with automatic number of groups for channels."""
 
     def __init__(self, num_channels: int) -> None:
+        """Initialize.
+
+        Args:
+            num_channels: number of channels to normalize.
+        """
         n_groups = int(math.sqrt(num_channels))
         while num_channels % n_groups != 0:
             n_groups -= 1

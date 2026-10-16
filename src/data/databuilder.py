@@ -37,12 +37,18 @@ class ConfigCached(type):
 
 
 class DataBuilder(metaclass=ConfigCached):
-    """Abstract dataset builder: (download →) preprocess → split."""
+    """Abstract dataset builder: (download →) preprocess → split.
+
+    Attributes:
+        n_classes: Number of distinct target classes.
+        data_dir: Directory path for raw or cached dataset files.
+    """
 
     n_classes: ClassVar[int]
     data_dir: Final[pathlib.Path]
 
     def __init__(self) -> None:
+        """Initialize."""
         cfg = Experiment.get_config()
         self.data_dir = cfg.user.path.data_dir
         self._download()
@@ -50,7 +56,14 @@ class DataBuilder(metaclass=ConfigCached):
         return
 
     def split(self, partition: Partitions, /) -> DataSplit:
-        """Load partition and return a DataSplit."""
+        """Load partition and return a DataSplit.
+
+        Args:
+            partition: dataset partition to retrieve.
+
+        Returns:
+            split dataset containing partition features and labels.
+        """
         features, labels = self._get_partition_data(partition)
         return DataSplit(features, labels)
 

@@ -3,6 +3,7 @@
 from src.config.experiment import Experiment
 from src.config.options import Datasets
 from src.data.databuilder import DataBuilder
+from src.data.signal_dataset import SignalDataset
 from src.data.split import DataSplit, Partitions
 from src.data.synthetic_dataset import SyntheticDataset
 
@@ -23,6 +24,7 @@ def get_databuilder(name: Datasets | None = None, /) -> DataBuilder:
 
     databuilder_dict: dict[Datasets, type[DataBuilder]] = {
         Datasets.SYNTHETIC: SyntheticDataset,
+        Datasets.SIGNAL: SignalDataset,
     }
     return databuilder_dict[name]()
 

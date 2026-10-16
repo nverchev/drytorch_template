@@ -4,10 +4,10 @@ This module wires up Hydra's configuration composition with the project's
 typed config hierarchy.  Two public helpers are exposed:
 
 * :func:`hydra_main` — decorator that converts the Hydra ``DictConfig`` into a
-  fully typed :class:`~src.config.specs.AllConfig` and passes it to the
+  fully typed :class:`~src.config.specs.ExperimentConfig` and passes it to the
   decorated entry-point function.
 
-* :func:`get_config_all` — constructs an :class:`~src.config.specs.AllConfig`
+* :func:`get_experiment_config` — constructs an :class:`~src.config.specs.ExperimentConfig`
   programmatically (without starting a Hydra run), used by the tuning script
   to instantiate fresh trial configs.
 """
@@ -27,10 +27,10 @@ from pydantic import TypeAdapter
 
 from src.config.environment import ConfigPath
 from src.config.experiment import get_variation
-from src.config.specs import AllConfig, HydraSettings
+from src.config.specs import ExperimentConfig, HydraSettings
 
 __all__ = [
-    'get_config_all',
+    'get_experiment_config',
     'get_hydra_settings',
     'hydra_main',
 ]
@@ -38,13 +38,13 @@ __all__ = [
 DEFAULT_CONFIG: Final = 'mlp_classifier'
 
 
-def hydra_main(func: Callable[[AllConfig], None], /) -> Callable[[], None]:
+def hydra_main(func: Callable[[ExperimentConfig], None], /) -> Callable[[], None]:
     """Decorator that starts a Hydra run and passes a typed config to *func*.
 
     Usage::
 
         @hydra_main
-        def main(cfg: AllConfig) -> None: ...
+        def main(cfg: ExperimentConfig) -> None: ...
 
     The decorator:
 
@@ -52,10 +52,10 @@ def hydra_main(func: Callable[[AllConfig], None], /) -> Callable[[], None]:
        ``mlp_classifier`` unless ``--config-name`` selects another file.
     2. Adds the Hydra runtime settings and embeds the active overrides into the
        variation, with :func:`~src.config.experiment.get_variation`.
-    3. Validates the result into a frozen :class:`AllConfig` with pydantic.
+    3. Validates the result into a frozen :class:`ExperimentConfig` with pydantic.
 
     Args:
-        func: Entry-point function that accepts an :class:`AllConfig`.
+        func: Entry-point function that accepts an :class:`ExperimentConfig`.
 
     Returns:
         A no-argument callable suitable for use as ``__main__``.
@@ -72,8 +72,8 @@ def hydra_main(func: Callable[[AllConfig], None], /) -> Callable[[], None]:
     return wrapper.__call__
 
 
-def get_config_all(config_name: str = DEFAULT_CONFIG, *, overrides: list[str] | None = None) -> AllConfig:
-    """Compose and return an :class:`AllConfig` without starting a Hydra run.
+def get_experiment_config(config_name: str = DEFAULT_CONFIG, *, overrides: list[str] | None = None) -> ExperimentConfig:
+    """Compose and return an :class:`ExperimentConfig` without starting a Hydra run.
 
     This is the recommended way to construct a config inside the tuning
     objective function, where each trial may use different overrides.
@@ -84,7 +84,7 @@ def get_config_all(config_name: str = DEFAULT_CONFIG, *, overrides: list[str] | 
             ``['classification.train.learn.lr=0.001']``.
 
     Returns:
-        A fully typed and validated :class:`AllConfig`.
+        A fully typed and validated :class:`ExperimentConfig`.
     """
     GlobalHydra.instance().clear()
 
@@ -109,11 +109,11 @@ def get_hydra_settings(dict_cfg: HydraConf, /) -> HydraSettings:
     )
 
 
-def _validate(dict_cfg: DictConfig, settings: HydraSettings, overrides: list[str] | None) -> AllConfig:
+def _validate(dict_cfg: DictConfig, settings: HydraSettings, overrides: list[str] | None) -> ExperimentConfig:
     # Hydra composes and resolves the files, pydantic converts and checks the values
     values = cast(dict[str, Any], OmegaConf.to_container(dict_cfg, resolve=True))
     values['user']['hydra'] = settings
     if overrides is not None:
         values['variation'], values['tags'] = get_variation(values.get('variation'), overrides)
 
-    return TypeAdapter(AllConfig).validate_python(values, extra='forbid')
+    return TypeAdapter(ExperimentConfig).validate_python(values, extra='forbid')

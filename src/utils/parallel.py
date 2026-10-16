@@ -17,14 +17,25 @@ T = TypeVar('T')
 
 
 class DistributedWorker[**P, T]:
-    """Callable wrapper to distribute a worker across multiple processes."""
+    """Callable wrapper to distribute a worker across multiple processes.
+
+    Attributes:
+        port: Free port allocated for distributed communication.
+        worker: Worker callable executed on each process.
+        world_size: Total number of distributed processes.
+    """
 
     port: Final[str]
     worker: Final[Callable[P, T]]
     world_size: Final[int]
 
     def __init__(self, worker: Callable[P, T], world_size: int) -> None:
-        """Initialize."""
+        """Initialize.
+
+        Args:
+            worker: worker callable executed on each process.
+            world_size: total number of distributed processes.
+        """
         self.port = self._get_free_port()
         self.worker = worker
         self.world_size = world_size

@@ -29,5 +29,5 @@ class ClassificationWandb(Wandb):
         rows: list[list[str | int]] = [[str(label), *row] for label, row in enumerate(counts)]
         table = wandb.Table(columns=columns, data=rows)
         name = f'{event.model_name}/{event.source_name}-confusion_matrix'
-        self.run.log({name: table}, step=event.epoch)
+        self.log_at_epoch({name: table}, model_name=event.model_name, epoch=event.epoch)
         return super().notify(event)

@@ -1,10 +1,23 @@
 """Subpackage for neural network modules."""
 
-from src.module.architectures import BaseArchitecture, MLPClassifier, MLPResClassifier, get_model
+from src.module.autoencoders import (
+    BaseAutoencoder,
+    CNNResAutoencoder,
+    get_autoencoder,
+)
+from src.module.classifiers import (
+    BaseClassifier,
+    LinearClassifier,
+    MLPClassifier,
+    get_classifier,
+)
 
 __all__ = [
-    'BaseArchitecture',
+    'BaseAutoencoder',
+    'BaseClassifier',
+    'CNNResAutoencoder',
+    'LinearClassifier',
     'MLPClassifier',
-    'MLPResClassifier',
-    'get_model',
+    'get_autoencoder',
+    'get_classifier',
 ]

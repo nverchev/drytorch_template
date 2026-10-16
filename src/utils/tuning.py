@@ -5,7 +5,7 @@ import optuna
 from omegaconf import DictConfig, OmegaConf
 from optuna import visualization
 
-from src.config import VERSION, get_config_all
+from src.config import VERSION, get_experiment_config
 
 
 __all__ = [
@@ -65,7 +65,7 @@ def get_study_name(config_name: str, tuning_scheme: str, overrides: list[str]) -
     Returns:
         The version, the configuration, its variation, the overrides and the scheme, joined.
     """
-    variation = get_config_all(config_name).resolved_variation
+    variation = get_experiment_config(config_name).resolved_variation
     override_iter = map(_remove_base_specification, sorted(overrides))
     override_iter = map(_remove_configuration_dir, override_iter)
     return '_'.join([f'v{VERSION}', config_name, variation, *override_iter, tuning_scheme])

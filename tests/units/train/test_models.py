@@ -110,6 +110,26 @@ class TestAutoencoderModels:
         assert codes.shape == (4, arch.latent_dim)
         assert torch.isfinite(codes).all()
 
+    def test_autoencoder_model_encode_in_mixed_precision(self, mocker) -> None:
+        """Encode in the precision of the model and return full-precision codes."""
+        cfg = hydra.get_experiment_config('signal_classifier')
+        mocker.patch.object(experiment.Experiment, 'get_config', return_value=cfg)
+        arch = module.get_autoencoder()
+        model = AutoencoderModel(
+            arch,
+            device=torch.device('cpu'),
+            mixed_precision=torch.bfloat16,
+            torch_compile=False,
+            distribute=False,
+        )
+        inputs = structures.Inputs(features=torch.randn(4, arch.in_dim, arch.sequence_length))
+        full_precision_codes = model.module.eval().encode(inputs)
+
+        codes = model.encode(inputs)
+
+        assert codes.dtype == torch.float32
+        assert not torch.equal(codes, full_precision_codes)
+
     def test_autoencoder_ema_model_encode_uses_averaged_module(self, mocker) -> None:
         """Compute latent encodings using averaged module parameters."""
         cfg = hydra.get_experiment_config('signal_classifier')

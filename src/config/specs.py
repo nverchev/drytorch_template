@@ -433,6 +433,7 @@ class UserSettings:
         checkpoint_every: Save a model checkpoint every *n* epochs.
         torch_compile: Whether to compile the model with torch.compile.
         load: Checkpoint epoch to resume from:``0`` skip; ``-1`` loads last checkpoint.
+        run_id: Run to resume. Defaults to the last run of the experiment.
         visualization: Options for visual inspection.
     """
 
@@ -444,6 +445,7 @@ class UserSettings:
     checkpoint_every: PositiveInt
     torch_compile: bool = False
     load: int = 0
+    run_id: str | None = None
     visualization: VisualizationSettings = dataclasses.field(default_factory=VisualizationSettings)
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)

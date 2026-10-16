@@ -44,15 +44,19 @@ class AutoencoderModel(Model[Inputs, Outputs]):
 
     @torch.inference_mode()
     def encode(self, inputs: Inputs, /) -> torch.Tensor:
-        """Compute bottleneck latent encodings under inference mode.
+        """Compute bottleneck latent encodings under inference mode, in the precision of the model.
 
         Args:
             inputs: input batch containing signal features.
 
         Returns:
-            latent representation tensor.
+            latent representation tensor, in full precision.
         """
-        return self.module.encode(inputs)
+        with self._autocast():
+            return self.module.encode(inputs).float()
+
+    def _autocast(self) -> torch.autocast:
+        return torch.autocast(self.device.type, dtype=self.mixed_precision, enabled=self.mixed_precision is not None)
 
 
 class AutoencoderEMAModel(EMAModel[Inputs, Outputs], AutoencoderModel):
@@ -72,4 +76,5 @@ class AutoencoderEMAModel(EMAModel[Inputs, Outputs], AutoencoderModel):
         Returns:
             latent representation tensor.
         """
-        return self.averaged_module.encode(inputs)
+        with self._autocast():
+            return self.averaged_module.encode(inputs).float()

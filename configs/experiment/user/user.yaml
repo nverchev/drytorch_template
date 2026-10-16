@@ -11,6 +11,7 @@ n_subprocesses: 0  # 0 disables DDP
 # Checkpointing
 checkpoint_every: 100
 load: 0  # -1 loads the latest checkpoint
+run_id:  # run to resume; empty resumes the last run
 
 # Trackers
 trackers:

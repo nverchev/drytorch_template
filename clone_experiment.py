@@ -44,8 +44,9 @@ def main() -> None:
     if from_name == cfg.name:
         parser.error(f'nothing to clone: {from_name} is already the experiment of these settings')
 
+    print(f'Cloning {from_name} as {cfg.name} in {cfg.par_dir}...')
     local_ops.clone_experiment_data(cfg.par_dir, from_name, cfg.name)
-    print(f'Cloned {from_name} as {cfg.name} in {cfg.par_dir}.')
+    print('Done.')
     return
 
 

@@ -153,12 +153,12 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
     """Initialise the experiment run and launch classifier training."""
     trackers = get_trackers(cfg)
     has_autoencoder = cfg.autoencoding is not None
-    resume = True if has_autoencoder else cfg.user.load != 0
+    resume = has_autoencoder or cfg.user.load != 0 or cfg.user.run_id is not None
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.par_dir, tags=cfg.tags)
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 
-    with exp.create_run(resume=resume, record=not DEBUG_MODE):
+    with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         autoencoder = load_autoencoder() if has_autoencoder else None
         train_classification(autoencoder=autoencoder)
         save_plots(trackers, cfg.classification.name, interactive=cfg.user.visualization.interactive)

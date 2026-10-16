@@ -95,12 +95,12 @@ def train_autoencoder(trial: Trial | None = None) -> None:
 def setup_and_train(cfg: ExperimentConfig) -> None:
     """Initialise the experiment run and launch autoencoder training."""
     trackers = get_trackers(cfg)
-    resume = cfg.user.load != 0
+    resume = cfg.user.load != 0 or cfg.user.run_id is not None
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.par_dir, tags=cfg.tags)
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 
-    with exp.create_run(resume=resume, record=not DEBUG_MODE):
+    with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_autoencoder()
         if cfg.autoencoding is not None:
             save_plots(trackers, cfg.autoencoding.name, interactive=cfg.user.visualization.interactive)

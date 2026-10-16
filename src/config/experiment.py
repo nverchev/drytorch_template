@@ -3,12 +3,16 @@
 import os
 import warnings
 
+from collections.abc import Iterable
+from typing import Protocol, runtime_checkable
+
 from hydra.core import utils as hydra_utils
+from torch import distributed as dist
 
 import drytorch
 
 from drytorch.core import tracking
-from drytorch.trackers import logging
+from drytorch.trackers import base_classes, logging
 
 from src.config.environment import DEBUG_MODE, get_current_branch
 from src.config.specs import ExperimentConfig
@@ -19,6 +23,7 @@ __all__ = [
     'Experiment',
     'get_trackers',
     'get_variation',
+    'save_plots',
     'set_tuning_logging',
 ]
 
@@ -101,6 +106,26 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             engine = sqlalchemy.create_engine(f'sqlite:///{engine_path}')
             optional_tracker_list.append(SQLConnection(engine=engine))
 
+    if cfg_trackers.matplotlib:
+        try:
+            from drytorch.trackers.matplotlib import MatPlotter
+
+        except ImportError as e:
+            warnings.warn(f'Matplotlib not installed, skipping. {e}', stacklevel=2)
+
+        else:
+            optional_tracker_list.append(MatPlotter())
+
+    if cfg_trackers.plotly:
+        try:
+            from drytorch.trackers.plotly import PlotlyPlotter
+
+        except ImportError as e:
+            warnings.warn(f'Plotly not installed, skipping. {e}', stacklevel=2)
+
+        else:
+            optional_tracker_list.append(PlotlyPlotter())
+
     return optional_tracker_list
 
 
@@ -127,6 +152,57 @@ def get_variation(variation: object, overrides: list[str], /) -> tuple[str, list
     base = str(variation) if variation is not None else get_current_branch()
     name = '_'.join([base, *sorted_overrides]).replace('/', '_')
     return name, sorted_overrides
+
+
+@runtime_checkable
+class _GridPlotterProtocol(Protocol):
+    def plot_grid(
+        self,
+        model_name: str,
+        *,
+        metric_names: Iterable[str] = ...,
+        source_names: Iterable[str] = ...,
+        start_epoch: int = ...,
+    ) -> None:
+        """Render the metrics of the model as subplots of one figure."""
+
+
+def save_plots(
+    trackers: Iterable[tracking.Tracker],
+    model_name: str,
+    *,
+    interactive: bool,
+    source_names: Iterable[str] = ('Trainer', 'Validation'),
+) -> None:
+    """Save the figures of the metrics of a model with each plotting tracker.
+
+    Args:
+        trackers: the trackers of the run; only the plotting trackers are used.
+        model_name: the name of the model.
+        interactive: whether to also show the figures.
+        source_names: the names of the sources to plot (defaults to Trainer and Validation).
+
+    Side Effects:
+        Writes the figures in the folder of the run and, when interactive, shows them.
+    """
+    if dist.is_initialized() and dist.get_rank() != 0:
+        return  # trackers record only in the main process
+
+    for tracker in trackers:
+        if not isinstance(tracker, base_classes.BasePlotter):
+            continue
+
+        tracker.save_figures(model_name, source_names=source_names)
+        if not interactive:
+            continue
+
+        # matplotlib shows all the metrics in one window
+        if isinstance(tracker, _GridPlotterProtocol):
+            tracker.plot_grid(model_name, source_names=source_names)
+        else:
+            tracker.plot(model_name, source_names=source_names)
+
+    return
 
 
 def set_tuning_logging() -> None:

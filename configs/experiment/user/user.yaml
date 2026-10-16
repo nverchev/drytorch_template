@@ -1,6 +1,6 @@
 # User settings
 
-seed:  # random seed (null = unset)
+seed:  # random seed; empty leaves it unset
 
 # Compute
 cpu: false
@@ -19,3 +19,9 @@ trackers:
   wandb: false
   sqlalchemy: false
   csv: true
+  matplotlib: false  # saves the figures of the metrics
+  plotly: false  # saves the figures of the metrics
+
+# Visualization
+visualization:
+  interactive: false  # also shows the figures of the plotting trackers

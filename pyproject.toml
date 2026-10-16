@@ -21,16 +21,18 @@ track_all = [
     "tensorboard>=2.20.0",
     "wandb>=0.23.1",
     "sqlalchemy>=2.0.0",
+    "matplotlib>=3.3.0",
+    "plotly>=4.10.0",
 ]
 finetune = ["optuna>=4.6.0", "plotly>=7.1.0", "scikit-learn>=1.9.1"]
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.40.1",
+    "basedpyright==1.40.2",
     "pre-commit>=4.5.1",
     "pytest>=9.1.1",
     "pytest-mock>=3.16.0",
-    "ruff>=0.16.9",
+    "ruff==0.17.1",
 ]
 
 [tool.basedpyright]

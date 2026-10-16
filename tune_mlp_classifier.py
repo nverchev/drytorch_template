@@ -32,6 +32,9 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
         overrides = suggest_overrides(tune_cfg, trial)
         seed = 'null' if tune_cfg.seed is None else tune_cfg.seed
         overrides += [f'classification.train.n_epochs={tune_cfg.n_epochs}', f'user.seed={seed}']
+        if tune_cfg.mixed_precision is not None:
+            overrides.append(f'classification.train.mixed_precision={tune_cfg.mixed_precision}')
+
         trial_cfg = get_experiment_config(tune_cfg.config_name, overrides=[*tune_cfg.overrides, *overrides])
 
         exp = Experiment(trial_cfg, name=trial_cfg.name, par_dir=trial_cfg.par_dir, tags=trial_cfg.tags)

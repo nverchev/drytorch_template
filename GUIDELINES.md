@@ -104,6 +104,8 @@ document the experiment.
   variations strictly under `final=false` on the validation split. Reserve
   `final=true` only for the final benchmark evaluation of the selected model on
   the test set.
+- **Treat tuning trials as a proxy:** Trials train for fewer epochs and in
+  mixed precision to run faster. Check the selected settings with a full run.
 
 
 ## Pipelines

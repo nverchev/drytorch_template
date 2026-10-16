@@ -22,6 +22,7 @@ Root config hierarchy::
     ├── data: DataConfig
     └── user: UserSettings
         ├── trackers: TrackerList
+        ├── visualization: VisualizationSettings
         ├── path: PathSpecs          ← populated from .env
         └── hydra: HydraSettings     ← populated at runtime
 
@@ -37,16 +38,26 @@ from typing import Any, Annotated, Self
 import torch
 import torch.nn as nn
 
-from pydantic import BeforeValidator, Field, model_validator
+from pydantic import BeforeValidator, Field, PlainValidator, model_validator
 from pydantic.dataclasses import dataclass
 
 from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
-from src.config.torch import ActClass, GroupedNorm, NormClass, get_activation_cls, get_norm_cls, get_optim_cls, set_seed
+from src.config.torch import (
+    ActClass,
+    GroupedNorm,
+    NormClass,
+    get_activation_cls,
+    get_mixed_precision,
+    get_norm_cls,
+    get_optim_cls,
+    set_seed,
+)
 from src.config.options import Autoencoders, Classifiers, ClipCriterion, Datasets, GradOp, Schedulers
 
 
 ActivationClass = Annotated[ActClass, BeforeValidator(get_activation_cls)]
 NormalizationClass = Annotated[NormClass, BeforeValidator(get_norm_cls)]
+MixedPrecision = Annotated[torch.dtype | None, PlainValidator(get_mixed_precision)]
 OptimizerClass = Annotated[type[torch.optim.Optimizer], BeforeValidator(get_optim_cls)]
 PositiveInt = Annotated[int, Field(ge=0)]
 StrictlyPositiveInt = Annotated[int, Field(gt=0)]
@@ -260,6 +271,7 @@ class TrainingConfig:
         learn: Optimiser and scheduler configuration.
         n_epochs: Maximum number of training epochs.
         early_stopping: Early stopping configuration.
+        mixed_precision: Autocast precision, ``float16`` (with gradient scaling) or ``bfloat16``; empty for none.
     """
 
     batch_size: StrictlyPositiveInt
@@ -267,6 +279,7 @@ class TrainingConfig:
     n_epochs: StrictlyPositiveInt
     early_stopping: EarlyStoppingConfig
     _n_subprocesses: PositiveInt
+    mixed_precision: MixedPrecision = None
 
     @model_validator(mode='after')
     def _check_batch_divisibility(self) -> Self:
@@ -346,6 +359,8 @@ class TrackerList:
         tensorboard: Streams metrics to a local TensorBoard server.
         wandb: Uploads metrics to Weights & Biases (requires ``track_all`` extra).
         sqlalchemy: Persists metrics in a SQLite database (requires ``track_all`` extra).
+        matplotlib: Saves a PNG figure of each metric after training (requires ``track_all`` extra).
+        plotly: Saves an HTML figure of each metric after training (requires ``track_all`` extra).
     """
 
     hydra: bool
@@ -353,6 +368,8 @@ class TrackerList:
     tensorboard: bool
     wandb: bool
     sqlalchemy: bool
+    matplotlib: bool
+    plotly: bool
 
 
 @dataclasses.dataclass(frozen=True)
@@ -393,6 +410,17 @@ class PathSpecs:
 
 
 @dataclass(frozen=True)
+class VisualizationSettings:
+    """Options for visual inspection.
+
+    Attributes:
+        interactive: Also show the figures of the plotting trackers after training (needs a display).
+    """
+
+    interactive: bool = False
+
+
+@dataclass(frozen=True)
 class UserSettings:
     """User-specific runtime preferences.
 
@@ -405,6 +433,7 @@ class UserSettings:
         checkpoint_every: Save a model checkpoint every *n* epochs.
         torch_compile: Whether to compile the model with torch.compile.
         load: Checkpoint epoch to resume from:``0`` skip; ``-1`` loads last checkpoint.
+        visualization: Options for visual inspection.
     """
 
     cpu: bool
@@ -415,6 +444,7 @@ class UserSettings:
     checkpoint_every: PositiveInt
     torch_compile: bool = False
     load: int = 0
+    visualization: VisualizationSettings = dataclasses.field(default_factory=VisualizationSettings)
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
 

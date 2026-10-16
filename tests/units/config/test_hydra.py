@@ -7,7 +7,7 @@ from src.config.hydra import get_experiment_config
 class TestHydraHelpers:
     """Test Hydra config composition and override tracking."""
 
-    def test_get_config_all_default(self, mocker) -> None:
+    def test_get_experiment_config_default(self, mocker) -> None:
         """Compose default typed configuration."""
         mocker.patch('src.config.specs.get_current_branch', return_value='main')
 
@@ -16,7 +16,7 @@ class TestHydraHelpers:
         assert cfg.classification.name == 'classification'
         assert isinstance(cfg.user.cpu, bool)
 
-    def test_get_config_all_with_overrides(self, mocker) -> None:
+    def test_get_experiment_config_with_overrides(self, mocker) -> None:
         """Apply overrides to typed configuration."""
         mocker.patch('src.config.specs.get_current_branch', return_value='main')
         overrides = ['classification.train.n_epochs=25']
@@ -26,7 +26,7 @@ class TestHydraHelpers:
         assert cfg.classification.train.n_epochs == 25
         assert cfg.tags == ['classification.train.n_epochs=25']
 
-    def test_get_config_all_starts_from_the_named_file(self, mocker) -> None:
+    def test_get_experiment_config_starts_from_the_named_file(self, mocker) -> None:
         """The named entry configuration is composed and recorded, and its runs get their own folder."""
         mocker.patch('src.config.specs.get_current_branch', return_value='main')
 

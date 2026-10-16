@@ -62,7 +62,8 @@ def get_cross_entropy() -> LossWithMetrics[Outputs, Targets]:
         if outputs.logits is None:
             raise ValueError('Logits are required to compute cross-entropy.')
 
-        return ce(outputs.logits, targets.label)
+        # mixed precision returns half-precision outputs, too coarse for the loss
+        return ce(outputs.logits.float(), targets.label)
 
     return Loss(_cross_entropy, name='CrossEntropy')
 
@@ -80,7 +81,9 @@ def get_reconstruction_loss() -> LossWithMetrics[Outputs, Targets]:
             target_features = target_features.unsqueeze(1)
 
         dims = tuple(range(1, outputs.reconstruction.ndim))
-        return mse(outputs.reconstruction, target_features).mean(dim=dims)
+
+        # mixed precision returns half-precision outputs, too coarse for the loss
+        return mse(outputs.reconstruction.float(), target_features).mean(dim=dims)
 
     return Loss(_reconstruction, name='MSE')
 

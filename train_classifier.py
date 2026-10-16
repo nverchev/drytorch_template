@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from drytorch import Test, Trainer, Validation
 
-from src.config import ExperimentConfig, Experiment, get_trackers, hydra_main
+from src.config import ExperimentConfig, Experiment, get_trackers, hydra_main, save_plots
 from src.config.environment import DEBUG_MODE
 from src.config.events import ConfusionMatrixEvent
 from src.data.dataset import get_databuilder, get_datasets
@@ -48,6 +48,7 @@ def load_autoencoder() -> AutoencoderEMAModel:
         decay=ae_cfg.model.ema_decay,
         device=cfg.user.device,
         name=ae_cfg.name,
+        mixed_precision=ae_cfg.train.mixed_precision,
         torch_compile=cfg.user.torch_compile,
     )
     model.load_state(cfg.user.load or -1)
@@ -74,6 +75,7 @@ def train_classification(
             decay=class_cfg.model.ema_decay,
             device=user_cfg.device,
             name=class_cfg.name,
+            mixed_precision=class_cfg.train.mixed_precision,
             torch_compile=user_cfg.torch_compile,
         )
     else:
@@ -81,6 +83,7 @@ def train_classification(
             classifier,
             device=user_cfg.device,
             name=class_cfg.name,
+            mixed_precision=class_cfg.train.mixed_precision,
             torch_compile=user_cfg.torch_compile,
         )
 
@@ -158,6 +161,7 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
     with exp.create_run(resume=resume, record=not DEBUG_MODE):
         autoencoder = load_autoencoder() if has_autoencoder else None
         train_classification(autoencoder=autoencoder)
+        save_plots(trackers, cfg.classification.name, interactive=cfg.user.visualization.interactive)
 
     return
 

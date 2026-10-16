@@ -1,9 +1,11 @@
 """Tests for torch config utilities."""
 
+import pytest
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from src.config.torch import GroupedNorm, get_activation_cls, get_norm_cls, get_optim_cls
+from src.config.torch import GroupedNorm, get_activation_cls, get_mixed_precision, get_norm_cls, get_optim_cls
 
 
 class TestGroupedNorm:
@@ -32,6 +34,25 @@ class TestClassResolvers:
         cls = get_activation_cls('ReLU')
 
         assert cls is nn.ReLU
+
+    @pytest.mark.parametrize('precision', ['bfloat16', torch.bfloat16])
+    def test_get_mixed_precision(self, precision: str | torch.dtype) -> None:
+        """Resolve the autocast precision by name or as a dtype."""
+        dtype = get_mixed_precision(precision)
+
+        assert dtype is torch.bfloat16
+
+    def test_get_mixed_precision_none(self) -> None:
+        """Keep None, which trains in full precision."""
+        dtype = get_mixed_precision(None)
+
+        assert dtype is None
+
+    @pytest.mark.parametrize('precision', ['float32', torch.float32, 'half'])
+    def test_get_mixed_precision_raises(self, precision: str | torch.dtype) -> None:
+        """Raise ValueError for a precision other than float16 and bfloat16."""
+        with pytest.raises(ValueError, match='not float16 or bfloat16'):
+            get_mixed_precision(precision)
 
     def test_get_norm_cls_grouped_norm(self) -> None:
         """Resolve custom GroupedNorm class by name."""

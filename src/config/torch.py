@@ -12,6 +12,7 @@ __all__ = [
     'GroupedNorm',
     'NormClass',
     'get_activation_cls',
+    'get_mixed_precision',
     'get_norm_cls',
     'get_optim_cls',
     'set_seed',
@@ -57,6 +58,32 @@ def get_activation_cls(act_name: str | ActClass, /) -> ActClass:
         return getattr(nn.modules.activation, act_name)
     except AttributeError as ae:
         raise ValueError(f'Input act_name "{act_name}" is not the name of a pytorch activation.') from ae
+
+
+def get_mixed_precision(precision: str | torch.dtype | None, /) -> torch.dtype | None:
+    """Get the autocast precision of mixed precision training.
+
+    Args:
+        precision: ``float16`` or ``bfloat16``, as a name or a dtype; ``None`` for no mixed precision.
+
+    Returns:
+        The dtype, or ``None`` without mixed precision.
+
+    Raises:
+        ValueError: if the precision is not ``float16`` or ``bfloat16``.
+    """
+    if precision is None:
+        return None
+
+    if isinstance(precision, torch.dtype):
+        precision = str(precision).removeprefix('torch.')
+
+    if precision == 'float16':
+        return torch.float16
+    elif precision == 'bfloat16':
+        return torch.bfloat16
+    else:
+        raise ValueError(f'Input precision "{precision}" is not float16 or bfloat16.')
 
 
 def get_norm_cls(norm_name: str | NormClass, /) -> NormClass:

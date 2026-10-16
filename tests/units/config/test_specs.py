@@ -3,6 +3,7 @@
 import dataclasses
 import pathlib
 import pytest
+import torch
 
 from src.config import environment, hydra
 from src.config.specs import (
@@ -56,6 +57,20 @@ class TestTrainingConfig:
                 _n_subprocesses=4,
             )
 
+    def test_mixed_precision_by_name(self) -> None:
+        """Convert the name of the precision in the configuration files to a dtype."""
+        cfg = hydra.get_experiment_config(overrides=['classification.train.mixed_precision=float16'])
+
+        assert cfg.classification.train.mixed_precision is torch.float16
+
+    def test_mixed_precision_survives_replace(self, default_config: ExperimentConfig) -> None:
+        """Keep the dtype when a copy of the configuration validates it again."""
+        train_cfg = dataclasses.replace(default_config.classification.train, mixed_precision=torch.bfloat16)
+
+        replaced = dataclasses.replace(train_cfg, n_epochs=1)
+
+        assert replaced.mixed_precision is torch.bfloat16
+
 
 class TestPathSpecs:
     """Test PathSpecs version directory computation."""
@@ -67,7 +82,7 @@ class TestPathSpecs:
         assert specs.version_dir == pathlib.Path(f'./exp_test/v{environment.VERSION}')
 
 
-class TestAllConfig:
+class TestExperimentConfig:
     """Test ExperimentConfig properties and variation handling."""
 
     def test_resolved_variation_fallback(self, mocker) -> None:
@@ -94,7 +109,7 @@ class TestAllConfig:
 class TestAutoencodingConfig:
     """Test AutoencodingConfig subclassing and attributes."""
 
-    def test_subclasses_experiment_config(self) -> None:
+    def test_subclasses_phase_config(self) -> None:
         """Inherit phase fields from PhaseConfig."""
         cfg = hydra.get_experiment_config()
         ae_cfg = AutoencodingConfig(

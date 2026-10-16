@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from drytorch import Test, Trainer, Validation
 
-from src.config import ExperimentConfig, Experiment, get_trackers, hydra_main
+from src.config import ExperimentConfig, Experiment, get_trackers, hydra_main, save_plots
 from src.config.environment import DEBUG_MODE
 from src.module import get_autoencoder
 from src.train import get_autoencoder_loss, get_learning_schema, get_loaders
@@ -42,6 +42,7 @@ def train_autoencoder(trial: Trial | None = None) -> None:
             decay=ae_cfg.model.ema_decay,
             device=user_cfg.device,
             name=ae_cfg.name,
+            mixed_precision=ae_cfg.train.mixed_precision,
             torch_compile=user_cfg.torch_compile,
         )
     else:
@@ -49,6 +50,7 @@ def train_autoencoder(trial: Trial | None = None) -> None:
             autoencoder,
             device=user_cfg.device,
             name=ae_cfg.name,
+            mixed_precision=ae_cfg.train.mixed_precision,
             torch_compile=user_cfg.torch_compile,
         )
 
@@ -100,6 +102,8 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
 
     with exp.create_run(resume=resume, record=not DEBUG_MODE):
         train_autoencoder()
+        if cfg.autoencoding is not None:
+            save_plots(trackers, cfg.autoencoding.name, interactive=cfg.user.visualization.interactive)
 
     return
 

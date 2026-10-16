@@ -219,6 +219,7 @@ Requires the `finetune` extra dependency (see Setup). The tuning configuration i
 - `config_name` is the entry configuration the trials start from;
 - `overrides` lists the experiment overrides every trial starts from;
 - `n_epochs` is the length of each trial (typically set to a fraction of the full training length).
+- `mixed_precision` optionally sets the autocast precision of the trials; with `float16`, the DRYTorch trainer also scales the gradients.
 
 Trials are stored in `optimization_db/`. To plot a study, pass
 `plot_tuning_results.py` the same `tune`, `config_name` and `overrides` as the

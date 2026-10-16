@@ -1,7 +1,7 @@
 db_location: "optimization_db"
 renderer: browser  # the default browser
 storage: "sqlite:///${db_location}/${db_name}.db"
-seed: null
+seed:
 
 tune:
   use_pruner: false

@@ -1,16 +1,17 @@
-"""Model profiling entry point.
+"""Classifier profiling entry point.
 
 Usage::
 
-    uv run profile.py
+    uv run profile_classifier.py
 """
 
 import pathlib
+
 import torch
+from drytorch.lib.loading import take_from_dataset
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.data.dataset import get_splits
-from src.data.structures import Inputs, Targets
 from src.module import get_classifier
 from src.train import get_classification_loss
 from src.utils.profiling import profile_backward, profile_forward, log_parameter_counts
@@ -23,10 +24,8 @@ def run_profiling(cfg: ExperimentConfig) -> None:
         device = torch.accelerator.current_accelerator(check_available=True) or torch.device('cpu')
 
     train_split, _ = get_splits()
-    inputs, targets = train_split[0]
-    batch_inputs = Inputs(features=inputs.features.unsqueeze(0).to(device))
-    label = targets.label.unsqueeze(0).to(device)
-    batch_targets = Targets(label=label, features=targets.features.unsqueeze(0).to(device))
+    batch_size = cfg.classification.train.batch_size
+    _, (inputs, targets) = take_from_dataset(train_split, device=device, n_samples=batch_size)
 
     classifier = get_classifier()
     classifier.to(device)
@@ -35,16 +34,10 @@ def run_profiling(cfg: ExperimentConfig) -> None:
 
     loss_fn = get_classification_loss()
 
-    outputs = profile_forward(classifier, batch_inputs, device=device, profile_dir=profile_dir)
-    loss = loss_fn.calculate(outputs, batch_targets)['CrossEntropy'].sum()
+    outputs = profile_forward(classifier, inputs, device=device, profile_dir=profile_dir)
+    loss = loss_fn.calculate(outputs, targets)['CrossEntropy'].sum()
     profile_backward(loss, device=device, profile_dir=profile_dir)
     return
-
-
-def get_databuilder_classes() -> int:
-    from src.data.dataset import get_databuilder
-
-    return get_databuilder().n_classes
 
 
 def setup_and_profile(cfg: ExperimentConfig) -> None:

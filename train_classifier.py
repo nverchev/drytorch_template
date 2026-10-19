@@ -56,14 +56,12 @@ def load_autoencoder() -> AutoencoderEMAModel:
     return model
 
 
-def train_classification(
-    autoencoder: AutoencoderEMAModel | None = None,
-    trial: Trial | None = None,
-) -> None:
+def train_classification(trial: Trial | None = None) -> None:
     """Set up model, data, and trainer then run training for classification.
 
+    With an autoencoding phase, the classifier learns from the encodings of the trained autoencoder.
+
     Args:
-        autoencoder: optional pretrained autoencoder for encoded representations.
         trial: optional Optuna trial for pruning.
     """
     cfg = Experiment.get_config()
@@ -89,6 +87,7 @@ def train_classification(
         )
 
     train_split, eval_split = get_splits()
+    autoencoder = None if cfg.autoencoding is None else load_autoencoder()
     if autoencoder is not None:
         encoded_train = EncodedDataset(train_split, autoencoder)
         encoded_eval = EncodedDataset(eval_split, autoencoder)
@@ -160,8 +159,7 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
         exp.trackers.subscribe(tracker)
 
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
-        autoencoder = load_autoencoder() if has_autoencoder else None
-        train_classification(autoencoder=autoencoder)
+        train_classification()
         save_learning_curves(trackers, cfg.classification.name, show=cfg.user.visualization.show)
 
     return

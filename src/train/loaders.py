@@ -2,7 +2,7 @@
 
 from drytorch import DataLoader
 
-from src.data.dataset import get_datasets
+from src.data.dataset import get_splits
 from src.data.derived_dataset import EncodedDataset
 
 __all__ = [
@@ -26,9 +26,9 @@ def get_loaders(
     Returns:
         A tuple of (train_loader, eval_loader).
     """
-    train_dataset, eval_dataset = get_datasets()
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, n_workers=n_workers)
-    eval_loader = DataLoader(eval_dataset, batch_size=batch_size, n_workers=n_workers)
+    train_split, eval_split = get_splits()
+    train_loader = DataLoader(train_split, batch_size=batch_size, n_workers=n_workers)
+    eval_loader = DataLoader(eval_split, batch_size=batch_size, n_workers=n_workers)
     return train_loader, eval_loader
 
 
@@ -53,21 +53,21 @@ def get_encoded_loader(
 
 
 def get_encoded_loaders(
-    train_dataset: EncodedDataset,
-    eval_dataset: EncodedDataset,
+    encoded_train: EncodedDataset,
+    encoded_eval: EncodedDataset,
     *,
     batch_size: int,
 ) -> tuple[DataLoader, DataLoader]:
     """Return (train_loader, eval_loader) for encoded dataset representations.
 
     Args:
-        train_dataset: encoded training dataset.
-        eval_dataset: encoded evaluation dataset.
+        encoded_train: encoded training split.
+        encoded_eval: encoded evaluation split.
         batch_size: number of samples per batch.
 
     Returns:
         A tuple of (train_loader, eval_loader).
     """
-    train_loader = get_encoded_loader(train_dataset, batch_size=batch_size)
-    eval_loader = get_encoded_loader(eval_dataset, batch_size=batch_size)
+    train_loader = get_encoded_loader(encoded_train, batch_size=batch_size)
+    eval_loader = get_encoded_loader(encoded_eval, batch_size=batch_size)
     return train_loader, eval_loader

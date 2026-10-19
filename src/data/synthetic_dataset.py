@@ -9,10 +9,10 @@ from src.data.databuilder import DataBuilder
 from src.data.preprocess import Preprocessor, get_preprocessor
 from src.data.split import Partitions
 
-__all__ = ['SyntheticDataset']
+__all__ = ['SyntheticDataBuilder']
 
 
-class SyntheticDataset(DataBuilder):
+class SyntheticDataBuilder(DataBuilder):
     """Synthetic dataset builder generating deterministic non-random samples.
 
     Attributes:

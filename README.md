@@ -23,10 +23,10 @@ Package organization and how to adapt it for your own task. Proceed with the cha
 | Configuration | `src/config/specs.py`, `configs/experiment/` | Pydantic schemas, Hydra YAMLs, entry configs | modify fields and YAMLs; add entry configs and phases (see [Configuration](#configuration)) |
 | Data | `src/data/` | Dataset builder, splits, preprocessing, augmentations | modify the builder for your source; add further datasets in separate modules |
 | Models | `src/module/` | Layer primitives, model architectures | replace with your own network architectures; reusable layers can stay |
-| Training | `src/train/` | Objectives, learning schema, loaders, hooks, model wrappers | modify the loss, metrics, loaders, and optimizer schema; hooks and wrappers can stay |
+| Training | `src/train/` | Objectives, learning schema, loaders, hooks, model wrappers, events | modify the loss, metrics, loaders, and optimizer schema; hooks and wrappers can stay |
 | Entry points | `train_*.py`, `profile_model.py`, `clone_experiment.py` | CLI entry points for training phases, profiling and reusing a phase | adapt or add one training script per phase; profiling script can stay |
 | Tuning | `tune_mlp_classifier.py`, `configs/tuning/` | Optuna study, search space configurations | modify search spaces under `configs/tuning/tune/`; write one tuning script per phase |
-| Tracking & Utils | `src/trackers/`, `src/utils/parallel.py` | Custom event handlers, DDP multi-process spawning | usually stay unchanged unless tracking custom artifacts or adapting DDP |
+| Tracking & Utils | `src/trackers/`, `src/utils/parallel.py` | Custom event handlers, tracker setup (`get_trackers`), learning curves (`save_learning_curves`), DDP multi-process spawning | usually stay unchanged unless tracking custom artifacts or adapting DDP |
 
 ## Starting a project
 

@@ -9,7 +9,7 @@ from torch import Tensor
 from drytorch.core import log_events
 from drytorch.trackers.logging import INFO_LEVELS, BuiltinLogger, logger
 
-from src.config.events import ConfusionMatrixEvent
+from src.train.events import ConfusionMatrixEvent
 
 __all__ = ['ClassificationLogger']
 
@@ -31,7 +31,7 @@ class ClassificationLogger(BuiltinLogger):
     @staticmethod
     def _format(matrix: Tensor) -> str:
         """Return the counts as a table, labels on the rows."""
-        counts = matrix.round().long().tolist()
+        counts: list[list[int]] = matrix.round().long().tolist()
         names = [str(i) for i in range(len(counts))]
         largest = str(max(max(row) for row in counts))
         width = max(len(name) for name in [*names, largest]) + 2

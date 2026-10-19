@@ -10,10 +10,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 from drytorch import Test, Trainer, Validation
 
-from src.config import ExperimentConfig, Experiment, get_trackers, hydra_main, save_plots
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers, save_learning_curves
 from src.config.environment import DEBUG_MODE
-from src.config.events import ConfusionMatrixEvent
-from src.data.dataset import get_databuilder, get_datasets
+from src.train.events import ConfusionMatrixEvent
+from src.data.dataset import get_databuilder, get_splits
 from src.data.derived_dataset import EncodedDataset
 from src.module import get_autoencoder, get_classifier
 from src.train import (
@@ -87,10 +88,10 @@ def train_classification(
             torch_compile=user_cfg.torch_compile,
         )
 
-    train_dataset, eval_dataset = get_datasets()
+    train_split, eval_split = get_splits()
     if autoencoder is not None:
-        encoded_train = EncodedDataset(train_dataset, autoencoder)
-        encoded_eval = EncodedDataset(eval_dataset, autoencoder)
+        encoded_train = EncodedDataset(train_split, autoencoder)
+        encoded_eval = EncodedDataset(eval_split, autoencoder)
         train_loader, eval_loader = get_encoded_loaders(
             encoded_train,
             encoded_eval,
@@ -161,7 +162,7 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         autoencoder = load_autoencoder() if has_autoencoder else None
         train_classification(autoencoder=autoencoder)
-        save_plots(trackers, cfg.classification.name, interactive=cfg.user.visualization.interactive)
+        save_learning_curves(trackers, cfg.classification.name, show=cfg.user.visualization.show)
 
     return
 

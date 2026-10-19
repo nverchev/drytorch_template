@@ -18,7 +18,8 @@ from omegaconf import DictConfig
 from drytorch.contrib.optuna import get_final_value, suggest_overrides
 from drytorch.core.exceptions import ConvergenceError
 
-from src.config import ConfigPath, Experiment, get_experiment_config, set_tuning_logging
+from src.config import ConfigPath, Experiment, get_experiment_config
+from src.trackers import set_tuning_logging
 from src.utils.tuning import impute_failed_trial, impute_pruned_trial, get_study_name, log_study_settings
 
 from train_classifier import train_classification

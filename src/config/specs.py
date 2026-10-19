@@ -414,10 +414,10 @@ class VisualizationSettings:
     """Options for visual inspection.
 
     Attributes:
-        interactive: Also show the figures of the plotting trackers after training (needs a display).
+        show: Also display the learning curves of the plotting trackers after training (needs a display).
     """
 
-    interactive: bool = False
+    show: bool = False
 
 
 @dataclass(frozen=True)

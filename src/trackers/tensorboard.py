@@ -9,7 +9,7 @@ from torch import Tensor
 from drytorch.core import log_events
 from drytorch.trackers.tensorboard import TensorBoard
 
-from src.config.events import ConfusionMatrixEvent
+from src.train.events import ConfusionMatrixEvent
 
 __all__ = ['ClassificationTensorBoard']
 
@@ -34,7 +34,7 @@ class ClassificationTensorBoard(TensorBoard):
     @staticmethod
     def _markdown(matrix: Tensor) -> str:
         """Return the counts as a markdown table, labels on the rows."""
-        counts = matrix.round().long().tolist()
+        counts: list[list[int]] = matrix.round().long().tolist()
         names = [str(i) for i in range(len(counts))]
         header = '| label \\ predicted | ' + ' | '.join(names) + ' |'
         separator = '|---' * (len(names) + 1) + '|'

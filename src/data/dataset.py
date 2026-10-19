@@ -3,13 +3,13 @@
 from src.config.experiment import Experiment
 from src.config.options import Datasets
 from src.data.databuilder import DataBuilder
-from src.data.signal_dataset import SignalDataset
+from src.data.signal_dataset import SignalDataBuilder
 from src.data.split import DataSplit, Partitions
-from src.data.synthetic_dataset import SyntheticDataset
+from src.data.synthetic_dataset import SyntheticDataBuilder
 
 __all__ = [
     'get_databuilder',
-    'get_datasets',
+    'get_splits',
 ]
 
 
@@ -23,24 +23,24 @@ def get_databuilder(name: Datasets | None = None, /) -> DataBuilder:
         name = Experiment.get_config().data.dataset.name
 
     databuilder_dict: dict[Datasets, type[DataBuilder]] = {
-        Datasets.SYNTHETIC: SyntheticDataset,
-        Datasets.SIGNAL: SignalDataset,
+        Datasets.SYNTHETIC: SyntheticDataBuilder,
+        Datasets.SIGNAL: SignalDataBuilder,
     }
     return databuilder_dict[name]()
 
 
-def _get_datasets() -> tuple[DataSplit, DataSplit]:
+def _get_splits() -> tuple[DataSplit, DataSplit]:
     """Get training and evaluation datasets."""
     cfg = Experiment.get_config()
     train_partition = Partitions.train_val if cfg.final else Partitions.train
     eval_partition = Partitions.test if cfg.final else Partitions.val
     databuilder = get_databuilder()
-    train_dataset = databuilder.get_split(train_partition)
-    eval_dataset = databuilder.get_split(eval_partition)
-    return train_dataset, eval_dataset
+    train_split = databuilder.get_split(train_partition)
+    eval_split = databuilder.get_split(eval_partition)
+    return train_split, eval_split
 
 
-def get_datasets() -> tuple[DataSplit, DataSplit]:
+def get_splits() -> tuple[DataSplit, DataSplit]:
     """Get training and evaluation datasets in a multiprocess-safe way."""
     cfg = Experiment.get_config()
     splits: tuple[DataSplit, DataSplit] | None = None
@@ -50,11 +50,11 @@ def get_datasets() -> tuple[DataSplit, DataSplit]:
         rank = dist.get_rank()
         for i in range(cfg.user.n_subprocesses):
             if rank == i:
-                splits = _get_datasets()
+                splits = _get_splits()
 
             dist.barrier() if cfg.user.cpu else dist.barrier(device_ids=[rank])
     else:
-        splits = _get_datasets()
+        splits = _get_splits()
 
     if splits is None:
         raise RuntimeError('Splits could not be created.')

@@ -9,10 +9,10 @@ from src.data.databuilder import DataBuilder
 from src.data.preprocess import Preprocessor, get_preprocessor
 from src.data.split import Partitions
 
-__all__ = ['SignalDataset']
+__all__ = ['SignalDataBuilder']
 
 
-class SignalDataset(DataBuilder):
+class SignalDataBuilder(DataBuilder):
     """Synthetic 1D signal dataset builder with frequency-modulated waveforms.
 
     Attributes:

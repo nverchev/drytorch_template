@@ -23,7 +23,7 @@ def _get_test_builder() -> TrainerBuilder[Any, Any, Any]:
         torch_compile=False,
         distribute=False,
     )
-    data, _ = dataset.get_datasets()
+    data, _ = dataset.get_splits()
     loader = DataLoader(data, batch_size=4)
     schema = learning_schema.get_learning_schema(cfg.classification)
     builder = Trainer.builder(

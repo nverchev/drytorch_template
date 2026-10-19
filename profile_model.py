@@ -9,24 +9,11 @@ import pathlib
 import torch
 
 from src.config import ExperimentConfig, Experiment, hydra_main
-from src.data.dataset import get_datasets
+from src.data.dataset import get_splits
 from src.data.structures import Inputs, Targets
 from src.module import get_classifier
 from src.train import get_classification_loss
-from src.utils.profiling import profile_backward, profile_forward, save_parameters
-
-
-def _get_profiling_dir() -> pathlib.Path:
-    exp = Experiment.get_current()
-    if '@' in exp.run.id:
-        day, time = exp.run.id.split('@')
-        run_subdir = pathlib.Path(day) / time
-    else:
-        run_subdir = pathlib.Path(exp.run.id)
-
-    profile_dir = exp.par_dir / 'profile' / exp.name / run_subdir
-    profile_dir.mkdir(exist_ok=True, parents=True)
-    return profile_dir
+from src.utils.profiling import profile_backward, profile_forward, log_parameter_counts
 
 
 def run_profiling(cfg: ExperimentConfig) -> None:
@@ -35,7 +22,7 @@ def run_profiling(cfg: ExperimentConfig) -> None:
     if device is None:
         device = torch.accelerator.current_accelerator(check_available=True) or torch.device('cpu')
 
-    train_split, _ = get_datasets()
+    train_split, _ = get_splits()
     inputs, targets = train_split[0]
     batch_inputs = Inputs(features=inputs.features.unsqueeze(0).to(device))
     batch_targets = Targets(label=targets.label.unsqueeze(0).to(device))
@@ -43,7 +30,7 @@ def run_profiling(cfg: ExperimentConfig) -> None:
     classifier = get_classifier()
     classifier.to(device)
     profile_dir = _get_profiling_dir()
-    save_parameters(classifier, profile_dir)
+    log_parameter_counts(classifier, profile_dir)
 
     loss_fn = get_classification_loss()
 
@@ -73,6 +60,19 @@ def main(cfg: ExperimentConfig) -> None:
     """Profiling entry point."""
     setup_and_profile(cfg)
     return
+
+
+def _get_profiling_dir() -> pathlib.Path:
+    exp = Experiment.get_current()
+    if '@' in exp.run.id:
+        day, time = exp.run.id.split('@')
+        run_subdir = pathlib.Path(day) / time
+    else:
+        run_subdir = pathlib.Path(exp.run.id)
+
+    profile_dir = exp.par_dir / 'profile' / exp.name / run_subdir
+    profile_dir.mkdir(exist_ok=True, parents=True)
+    return profile_dir
 
 
 if __name__ == '__main__':

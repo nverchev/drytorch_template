@@ -5,9 +5,9 @@ import torch
 from src.config import experiment, hydra
 from src.data import split
 from src.data.databuilder import DataBuilder
-from src.data.dataset import get_databuilder, get_datasets
-from src.data.signal_dataset import SignalDataset
-from src.data.synthetic_dataset import SyntheticDataset
+from src.data.dataset import get_databuilder, get_splits
+from src.data.signal_dataset import SignalDataBuilder
+from src.data.synthetic_dataset import SyntheticDataBuilder
 
 
 class TestDataBuilder:
@@ -19,23 +19,23 @@ class TestDataBuilder:
 
         assert isinstance(builder, DataBuilder)
 
-    def test_get_datasets_returns_splits(self) -> None:
-        """Build non-empty training and evaluation dataset splits."""
-        train_ds, eval_ds = get_datasets()
+    def test_get_splits(self) -> None:
+        """Build non-empty training and evaluation splits."""
+        train_split, eval_split = get_splits()
 
-        assert len(train_ds) > 0
-        assert len(eval_ds) > 0
+        assert len(train_split)
+        assert len(eval_split)
 
 
-class TestSyntheticDataset:
-    """Test SyntheticDataset initialization and sample indexing."""
+class TestSyntheticDataBuilder:
+    """Test SyntheticDataBuilder initialization and sample indexing."""
 
-    def test_synthetic_dataset_sample_shape(self) -> None:
+    def test_synthetic_split_sample_shape(self) -> None:
         """Generate samples matching configured dimensions and label types."""
         cfg = hydra.get_experiment_config()
-        ds = SyntheticDataset()
+        databuilder = SyntheticDataBuilder()
 
-        train_split = ds.get_split(split.Partitions.train)
+        train_split = databuilder.get_split(split.Partitions.train)
         inputs, targets = train_split[0]
 
         assert len(train_split) == cfg.data.dataset.n_train_samples
@@ -45,10 +45,10 @@ class TestSyntheticDataset:
     def test_partition_statistics_non_final(self) -> None:
         """Centre training split while preserving uncentred test split in non-final runs."""
         tolerance = 1e-4
-        ds = SyntheticDataset()
+        databuilder = SyntheticDataBuilder()
 
-        train_features = ds.split(split.Partitions.train).features
-        test_features = ds.split(split.Partitions.test).features
+        train_features = databuilder.split(split.Partitions.train).features
+        test_features = databuilder.split(split.Partitions.test).features
         train_mean = train_features.mean(dim=0)
         train_std = train_features.std(dim=0)
         test_mean = test_features.mean(dim=0)
@@ -58,16 +58,16 @@ class TestSyntheticDataset:
         assert not torch.allclose(test_mean, torch.zeros_like(test_mean), atol=tolerance)
 
 
-class TestSignalDataset:
-    """Test SignalDataset initialization and sample indexing."""
+class TestSignalDataBuilder:
+    """Test SignalDataBuilder initialization and sample indexing."""
 
-    def test_signal_dataset_sample_shape(self, mocker) -> None:
+    def test_signal_split_sample_shape(self, mocker) -> None:
         """Generate multichannel 1D sequence samples with corresponding labels."""
         cfg = hydra.get_experiment_config('signal_classifier')
         mocker.patch.object(experiment.Experiment, 'get_config', return_value=cfg)
-        ds = SignalDataset()
+        databuilder = SignalDataBuilder()
 
-        train_split = ds.get_split(split.Partitions.train)
+        train_split = databuilder.get_split(split.Partitions.train)
         inputs, targets = train_split[0]
 
         assert len(train_split) == cfg.data.dataset.n_train_samples

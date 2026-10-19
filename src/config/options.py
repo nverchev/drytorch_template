@@ -43,10 +43,10 @@ class Autoencoders(enum.StrEnum):
 class GradOp(enum.StrEnum):
     """Gradient operation names."""
 
-    GRAD_PARAM_NORMALIZER = enum.auto()
-    GRAD_Z_SCORE_NORMALIZER = enum.auto()
-    GRAD_NORM_CLIPPER = enum.auto()
-    GRAD_VALUE_CLIPPER = enum.auto()
+    PARAM_NORMALIZER = enum.auto()
+    Z_SCORE_NORMALIZER = enum.auto()
+    NORM_CLIPPER = enum.auto()
+    VALUE_CLIPPER = enum.auto()
     HIST_CLIPPER = enum.auto()
     PARAM_HIST_CLIPPER = enum.auto()
 

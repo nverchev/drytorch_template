@@ -55,17 +55,17 @@ def get_grad_op(config: LearningConfig, /) -> p.GradientOpProtocol:
     Returns:
         instantiated gradient operation.
     """
-    if config.grad_op == GradOp.GRAD_PARAM_NORMALIZER:
-        return gradient_ops.GradParamNormalizer()
+    if config.grad_op == GradOp.PARAM_NORMALIZER:
+        return gradient_ops.ParamNormalizer()
 
-    if config.grad_op == GradOp.GRAD_Z_SCORE_NORMALIZER:
-        return gradient_ops.GradZScoreNormalizer()
+    if config.grad_op == GradOp.Z_SCORE_NORMALIZER:
+        return gradient_ops.ZScoreNormalizer()
 
-    if config.grad_op == GradOp.GRAD_VALUE_CLIPPER:
-        return gradient_ops.GradValueClipper()
+    if config.grad_op == GradOp.VALUE_CLIPPER:
+        return gradient_ops.ValueClipper()
 
-    if config.grad_op == GradOp.GRAD_NORM_CLIPPER:
-        return gradient_ops.GradNormClipper()
+    if config.grad_op == GradOp.NORM_CLIPPER:
+        return gradient_ops.NormClipper()
 
     if config.grad_op == GradOp.HIST_CLIPPER:
         if config.clip_criterion == ClipCriterion.Z_STAT:

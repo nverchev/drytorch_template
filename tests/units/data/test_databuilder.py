@@ -22,8 +22,8 @@ class TestConfigCached:
 
     def test_same_configuration_returns_same_instance(self) -> None:
         """Reuse cached instance under identical configuration."""
-        instance1 = synthetic_dataset.SyntheticDataset()
-        instance2 = synthetic_dataset.SyntheticDataset()
+        instance1 = synthetic_dataset.SyntheticDataBuilder()
+        instance2 = synthetic_dataset.SyntheticDataBuilder()
 
         assert instance1 is instance2
 
@@ -33,12 +33,12 @@ class TestConfigCached:
         mocker,
     ) -> None:
         """Create new instance when data configuration changes."""
-        instance1 = synthetic_dataset.SyntheticDataset()
+        instance1 = synthetic_dataset.SyntheticDataBuilder()
         n_train_samples = default_config.data.dataset.n_train_samples + 10
         cfg_changed = hydra.get_experiment_config(overrides=[f'data.dataset.n_train_samples={n_train_samples}'])
         mocker.patch.object(experiment.Experiment, 'get_config', return_value=cfg_changed)
 
-        instance2 = synthetic_dataset.SyntheticDataset()
+        instance2 = synthetic_dataset.SyntheticDataBuilder()
 
         assert instance1 is not instance2
 
@@ -48,11 +48,11 @@ class TestConfigCached:
         mocker,
     ) -> None:
         """Reuse cached instance when non-data configuration changes."""
-        instance1 = synthetic_dataset.SyntheticDataset()
+        instance1 = synthetic_dataset.SyntheticDataBuilder()
         n_epochs = default_config.classification.train.n_epochs + 5
         cfg_changed = hydra.get_experiment_config(overrides=[f'classification.train.n_epochs={n_epochs}'])
         mocker.patch.object(experiment.Experiment, 'get_config', return_value=cfg_changed)
 
-        instance2 = synthetic_dataset.SyntheticDataset()
+        instance2 = synthetic_dataset.SyntheticDataBuilder()
 
         assert instance1 is instance2

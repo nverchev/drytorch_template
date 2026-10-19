@@ -25,4 +25,4 @@ trackers:
 
 # Visualization
 visualization:
-  interactive: false  # also shows the figures of the plotting trackers
+  show: false  # also display the learning curves of the plotting trackers

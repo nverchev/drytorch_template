@@ -20,7 +20,7 @@ from src.utils.profiling import profile_backward, profile_forward, log_parameter
 def run_profiling(cfg: ExperimentConfig) -> None:
     """Set up model, create inputs, and profile forward and backward passes."""
     device = cfg.user.device
-    if device is None:
+    if device == 'auto':
         device = torch.accelerator.current_accelerator(check_available=True) or torch.device('cpu')
 
     train_split, _ = get_splits()

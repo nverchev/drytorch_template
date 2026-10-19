@@ -14,7 +14,7 @@ class TestHydraHelpers:
         cfg = get_experiment_config()
 
         assert cfg.classification.name == 'classification'
-        assert isinstance(cfg.user.cpu, bool)
+        assert cfg.user.device == 'auto'
 
     def test_get_experiment_config_with_overrides(self, mocker) -> None:
         """Apply overrides to typed configuration."""
@@ -42,7 +42,7 @@ class TestHydraHelpers:
     def test_get_variation_filters_user_keys(self, mocker) -> None:
         """Filter user-specific overrides from variation string."""
         mocker.patch('src.config.experiment.get_current_branch', return_value='main')
-        overrides = ['user.cpu=true', 'classification.train.n_epochs=50']
+        overrides = ['user.device=cpu', 'classification.train.n_epochs=50']
 
         variation, tags = experiment.get_variation(None, overrides)
 

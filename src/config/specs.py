@@ -33,7 +33,7 @@ import dataclasses
 import pathlib
 from functools import cached_property
 
-from typing import Any, Annotated, Self
+from typing import Any, Annotated, Self, Literal
 
 import torch
 import torch.nn as nn
@@ -47,6 +47,7 @@ from src.config.torch import (
     GroupedNorm,
     NormClass,
     get_activation_cls,
+    get_device,
     get_mixed_precision,
     get_norm_cls,
     get_optim_cls,
@@ -56,6 +57,7 @@ from src.config.options import Autoencoders, Classifiers, ClipCriterion, Dataset
 
 
 ActivationClass = Annotated[ActClass, BeforeValidator(get_activation_cls)]
+Device = Annotated[torch.device | Literal['auto'], PlainValidator(get_device)]
 NormalizationClass = Annotated[NormClass, BeforeValidator(get_norm_cls)]
 MixedPrecision = Annotated[torch.dtype | None, PlainValidator(get_mixed_precision)]
 OptimizerClass = Annotated[type[torch.optim.Optimizer], BeforeValidator(get_optim_cls)]
@@ -425,7 +427,8 @@ class UserSettings:
     """User-specific runtime preferences.
 
     Attributes:
-        cpu: Force all computations onto CPU (useful for debugging).
+        device: Device where the models run: ``auto`` for the accelerator when available, or a name such as
+            ``cpu`` or ``cuda:1``.
         n_workers: DataLoader worker processes. ``0`` runs loading in the main process.
         n_subprocesses: Number of DDP processes. ``0`` disables distributed training.
         trackers: Active experiment-tracking backends.
@@ -437,7 +440,7 @@ class UserSettings:
         visualization: Options for visual inspection.
     """
 
-    cpu: bool
+    device: Device
     n_workers: PositiveInt
     n_subprocesses: PositiveInt
     trackers: TrackerList
@@ -456,11 +459,6 @@ class UserSettings:
             set_seed(self.seed)
 
         return
-
-    @property
-    def device(self) -> torch.device | None:
-        """Compute device: ``cpu`` when forced, ``None`` to use the default accelerator."""
-        return torch.device('cpu') if self.cpu else None
 
 
 # ---------------------------------------------------------------------------

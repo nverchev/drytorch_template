@@ -52,7 +52,7 @@ def get_splits() -> tuple[DataSplit, DataSplit]:
             if rank == i:
                 splits = _get_splits()
 
-            dist.barrier() if cfg.user.cpu else dist.barrier(device_ids=[rank])
+            dist.barrier()
     else:
         splits = _get_splits()
 

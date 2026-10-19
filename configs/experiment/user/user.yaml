@@ -3,7 +3,7 @@
 seed:  # random seed; empty leaves it unset
 
 # Compute
-cpu: false
+device: auto  # the available accelerator
 torch_compile: false
 n_workers: 0
 n_subprocesses: 0  # 0 disables DDP

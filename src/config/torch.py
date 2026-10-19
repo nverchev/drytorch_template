@@ -3,6 +3,8 @@
 import math
 import random
 
+from typing import Literal
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,6 +14,7 @@ __all__ = [
     'GroupedNorm',
     'NormClass',
     'get_activation_cls',
+    'get_device',
     'get_mixed_precision',
     'get_norm_cls',
     'get_optim_cls',
@@ -58,6 +61,27 @@ def get_activation_cls(act_name: str | ActClass, /) -> ActClass:
         return getattr(nn.modules.activation, act_name)
     except AttributeError as ae:
         raise ValueError(f'Input act_name "{act_name}" is not the name of a pytorch activation.') from ae
+
+
+def get_device(device: str | torch.device, /) -> torch.device | Literal['auto']:
+    """Get the device where the models run.
+
+    Args:
+        device: ``auto`` for the accelerator when available, or a device, as a name such as ``cpu`` or ``cuda:1``.
+
+    Returns:
+        The device, or ``'auto'``.
+
+    Raises:
+        ValueError: if the name is not ``auto`` or the name of a device.
+    """
+    if isinstance(device, torch.device) or device == 'auto':
+        return device
+
+    try:
+        return torch.device(device)
+    except RuntimeError as re:
+        raise ValueError(f'Input device "{device}" is not auto or the name of a device.') from re
 
 
 def get_mixed_precision(precision: str | torch.dtype | None, /) -> torch.dtype | None:

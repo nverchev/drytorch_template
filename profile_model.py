@@ -25,7 +25,8 @@ def run_profiling(cfg: ExperimentConfig) -> None:
     train_split, _ = get_splits()
     inputs, targets = train_split[0]
     batch_inputs = Inputs(features=inputs.features.unsqueeze(0).to(device))
-    batch_targets = Targets(label=targets.label.unsqueeze(0).to(device))
+    label = targets.label.unsqueeze(0).to(device)
+    batch_targets = Targets(label=label, features=targets.features.unsqueeze(0).to(device))
 
     classifier = get_classifier()
     classifier.to(device)

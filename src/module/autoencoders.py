@@ -9,7 +9,7 @@ import torch.nn as nn
 
 from src.config.experiment import Experiment
 from src.config.options import Autoencoders
-from src.data.structures import Inputs, Outputs
+from src.data.structures import AutoencodingOutputs, Inputs
 from src.module.layers import Conv1DResBlock, LinearLayer
 
 __all__ = [
@@ -53,7 +53,7 @@ class BaseAutoencoder(nn.Module, abc.ABC):
         """Decode latent representations back into signal waveforms."""
 
     @abc.abstractmethod
-    def forward(self, inputs: Inputs, /) -> Outputs:
+    def forward(self, inputs: Inputs, /) -> AutoencodingOutputs:
         """Run forward pass."""
 
 
@@ -119,7 +119,7 @@ class CNNResAutoencoder(BaseAutoencoder):
         return self.decoder(z)
 
     @override
-    def forward(self, inputs: Inputs, /) -> Outputs:
+    def forward(self, inputs: Inputs, /) -> AutoencodingOutputs:
         """Reconstruct input signals and return latent encodings.
 
         Args:
@@ -128,9 +128,8 @@ class CNNResAutoencoder(BaseAutoencoder):
         Returns:
             model outputs containing reconstruction and latent encodings.
         """
-        z = self.encode(inputs)
-        recon = self.decode(z)
-        return Outputs(reconstruction=recon, encodings=z)
+        encodings = self.encode(inputs)
+        return AutoencodingOutputs(self.decode(encodings), encodings)
 
 
 def get_autoencoder() -> BaseAutoencoder:

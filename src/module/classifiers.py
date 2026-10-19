@@ -5,12 +5,13 @@ import itertools
 
 from typing import Final, override
 
+import torch
 import torch.nn as nn
 
 from src.config.experiment import Experiment
 from src.config.options import Classifiers
 from src.data.dataset import get_databuilder
-from src.data.structures import Inputs, Outputs
+from src.data.structures import Inputs
 from src.module.layers import LinearLayer
 
 __all__ = [
@@ -41,7 +42,7 @@ class BaseClassifier(nn.Module, abc.ABC):
         return
 
     @abc.abstractmethod
-    def forward(self, inputs: Inputs, /) -> Outputs:
+    def forward(self, inputs: Inputs, /) -> torch.Tensor:
         """Run the forward pass.
 
         Args:
@@ -77,7 +78,7 @@ class MLPClassifier(BaseClassifier):
         return
 
     @override
-    def forward(self, inputs: Inputs, /) -> Outputs:
+    def forward(self, inputs: Inputs, /) -> torch.Tensor:
         """Forward pass through the hidden layers and the output layer.
 
         Args:
@@ -86,7 +87,7 @@ class MLPClassifier(BaseClassifier):
         Returns:
             model outputs containing logits.
         """
-        return Outputs(logits=self.layers(inputs.features))
+        return self.layers(inputs.features)
 
 
 class LinearClassifier(BaseClassifier):
@@ -112,7 +113,7 @@ class LinearClassifier(BaseClassifier):
         return
 
     @override
-    def forward(self, inputs: Inputs, /) -> Outputs:
+    def forward(self, inputs: Inputs, /) -> torch.Tensor:
         """Forward pass through normalization and linear head.
 
         Args:
@@ -121,7 +122,7 @@ class LinearClassifier(BaseClassifier):
         Returns:
             model outputs containing class logits.
         """
-        return Outputs(logits=self.head(self.norm(inputs.features)))
+        return self.head(self.norm(inputs.features))
 
 
 def get_classifier() -> BaseClassifier:

@@ -24,7 +24,7 @@ from torch import Tensor
 from drytorch.lib.accumulators import AbstractAccumulator
 from drytorch.lib.objectives import Loss, LossWithMetrics, Metric, Objective, join
 
-from src.data.structures import Outputs, Targets
+from src.data.structures import AutoencodingOutputs, Targets
 
 __all__ = [
     'AggregatedAccuracy',
@@ -42,40 +42,31 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 
-def get_accuracy() -> Metric[Outputs, Targets]:
+def get_accuracy() -> Metric[Tensor, Targets]:
     """Return top-1 per-sample accuracy metric."""
 
-    def _accuracy(outputs: Outputs, targets: Targets) -> torch.Tensor:
-        if outputs.logits is None:
-            raise ValueError('Logits are required to compute accuracy.')
-
-        return (outputs.logits.argmax(dim=-1) == targets.label).float()
+    def _accuracy(logits: Tensor, targets: Targets) -> torch.Tensor:
+        return (logits.argmax(dim=-1) == targets.label).float()
 
     return Metric(_accuracy, name='Accuracy')
 
 
-def get_cross_entropy() -> LossWithMetrics[Outputs, Targets]:
+def get_cross_entropy() -> LossWithMetrics[Tensor, Targets]:
     """Return cross-entropy loss objective."""
     ce = torch.nn.CrossEntropyLoss(reduction='none')
 
-    def _cross_entropy(outputs: Outputs, targets: Targets) -> torch.Tensor:
-        if outputs.logits is None:
-            raise ValueError('Logits are required to compute cross-entropy.')
-
+    def _cross_entropy(logits: Tensor, targets: Targets) -> torch.Tensor:
         # mixed precision returns half-precision outputs, too coarse for the loss
-        return ce(outputs.logits.float(), targets.label)
+        return ce(logits.float(), targets.label)
 
     return Loss(_cross_entropy, name='CrossEntropy')
 
 
-def get_reconstruction_loss() -> LossWithMetrics[Outputs, Targets]:
+def get_reconstruction_loss() -> LossWithMetrics[AutoencodingOutputs, Targets]:
     """Return mean squared error reconstruction loss objective."""
     mse = torch.nn.MSELoss(reduction='none')
 
-    def _reconstruction(outputs: Outputs, targets: Targets) -> torch.Tensor:
-        if outputs.reconstruction is None or targets.features is None:
-            raise ValueError('Reconstruction and target features are required.')
-
+    def _reconstruction(outputs: AutoencodingOutputs, targets: Targets) -> torch.Tensor:
         target_features = targets.features
         if target_features.ndim == 2 and outputs.reconstruction.ndim == 3:
             target_features = target_features.unsqueeze(1)
@@ -88,12 +79,12 @@ def get_reconstruction_loss() -> LossWithMetrics[Outputs, Targets]:
     return Loss(_reconstruction, name='MSE')
 
 
-def get_classification_loss() -> LossWithMetrics[Outputs, Targets]:
+def get_classification_loss() -> LossWithMetrics[Tensor, Targets]:
     """Return classification loss objective watching per-sample accuracy."""
     return join(get_cross_entropy(), get_accuracy())
 
 
-def get_autoencoder_loss() -> LossWithMetrics[Outputs, Targets]:
+def get_autoencoder_loss() -> LossWithMetrics[AutoencodingOutputs, Targets]:
     """Return autoencoder reconstruction loss objective."""
     return get_reconstruction_loss()
 
@@ -143,7 +134,7 @@ class ConfusionMatrixAccumulator(AbstractAccumulator[Tensor, Tensor]):
         return self.matrix.float()
 
 
-class AggregatedAccuracy(Objective[Outputs, Targets]):
+class AggregatedAccuracy(Objective[Tensor, Targets]):
     """Stateful macro and per-class accuracy computed over full evaluation sets.
 
     Attributes:
@@ -184,15 +175,12 @@ class AggregatedAccuracy(Objective[Outputs, Targets]):
         return ConfusionMatrixAccumulator
 
     @override
-    def calculate(self, outputs: Outputs, targets: Targets) -> dict[str, Tensor]:
-        matrix = self._calculate_confusion_matrix(outputs, targets)
+    def calculate(self, logits: Tensor, targets: Targets) -> dict[str, Tensor]:
+        matrix = self._calculate_confusion_matrix(logits, targets)
         return {self._KEY: matrix}
 
-    def _calculate_confusion_matrix(self, outputs: Outputs, targets: Targets) -> Tensor:
-        if outputs.logits is None:
-            raise ValueError('Logits are required to compute confusion matrix.')
-
-        preds = outputs.logits.argmax(dim=-1)
+    def _calculate_confusion_matrix(self, logits: Tensor, targets: Targets) -> Tensor:
+        preds = logits.argmax(dim=-1)
         labels = targets.label
         indices = labels * self.n_classes + preds
         counts = torch.bincount(indices, minlength=self.n_classes**2)

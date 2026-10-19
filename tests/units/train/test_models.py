@@ -35,11 +35,11 @@ class TestClassifierModels:
             eval_out = model(inputs)
             diff_batch_out = model(structures.Inputs(features=torch.randn(3, 64)))
 
-        assert train_out.logits.shape == (8, n_classes)
-        assert torch.isfinite(train_out.logits).all()
-        assert eval_out.logits.shape == (8, n_classes)
-        assert torch.isfinite(eval_out.logits).all()
-        assert diff_batch_out.logits.shape == (3, n_classes)
+        assert train_out.shape == (8, n_classes)
+        assert torch.isfinite(train_out).all()
+        assert eval_out.shape == (8, n_classes)
+        assert torch.isfinite(eval_out).all()
+        assert diff_batch_out.shape == (3, n_classes)
 
     def test_classifier_ema_model_compiled_forward(self, sample_batch, n_classes) -> None:
         """Execute compiled ClassifierEMAModel across modes and batch sizes."""
@@ -58,11 +58,11 @@ class TestClassifierModels:
             eval_out = model(inputs)
             diff_batch_out = model(structures.Inputs(features=torch.randn(3, 64)))
 
-        assert train_out.logits.shape == (8, n_classes)
-        assert torch.isfinite(train_out.logits).all()
-        assert eval_out.logits.shape == (8, n_classes)
-        assert torch.isfinite(eval_out.logits).all()
-        assert diff_batch_out.logits.shape == (3, n_classes)
+        assert train_out.shape == (8, n_classes)
+        assert torch.isfinite(train_out).all()
+        assert eval_out.shape == (8, n_classes)
+        assert torch.isfinite(eval_out).all()
+        assert diff_batch_out.shape == (3, n_classes)
 
     def test_compilation_numerical_consistency(self, sample_batch) -> None:
         """Produce identical numerical results between compiled and uncompiled models."""
@@ -86,7 +86,7 @@ class TestClassifierModels:
             uncompiled_out = uncompiled(inputs)
             compiled_out = compiled(inputs)
 
-        assert torch.allclose(uncompiled_out.logits, compiled_out.logits, atol=1e-5)
+        assert torch.allclose(uncompiled_out, compiled_out, atol=1e-5)
 
 
 class TestAutoencoderModels:

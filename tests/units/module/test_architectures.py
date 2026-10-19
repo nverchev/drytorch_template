@@ -23,8 +23,7 @@ class TestMLPClassifier:
 
         out = classifier(inputs)
 
-        assert out.logits is not None
-        assert out.logits.shape == (8, n_classes)
+        assert out.shape == (8, n_classes)
 
 
 class TestCNNResAutoencoder:
@@ -40,8 +39,6 @@ class TestCNNResAutoencoder:
 
         out = autoencoder(inputs)
 
-        assert out.reconstruction is not None
-        assert out.encodings is not None
         assert out.reconstruction.shape == (8, ds_cfg.in_features, ds_cfg.sequence_length)
         assert out.encodings.shape == (8, autoencoder.latent_dim)
 
@@ -58,8 +55,7 @@ class TestLinearClassifier:
 
         out = classifier(inputs)
 
-        assert out.logits is not None
-        assert out.logits.shape == (8, 4)
+        assert out.shape == (8, 4)
 
 
 class TestFactories:

@@ -45,6 +45,7 @@ def n_classes() -> int:
 @pytest.fixture(scope='package')
 def sample_batch() -> tuple[Inputs, Targets]:
     """Return sample batch of inputs and targets."""
-    inputs = Inputs(features=torch.randn(8, 64))
-    targets = Targets(label=torch.randint(0, 6, (8,)))
+    features = torch.randn(8, 64)
+    inputs = Inputs(features=features)
+    targets = Targets(label=torch.randint(0, 6, (8,)), features=features)
     return inputs, targets

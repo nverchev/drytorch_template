@@ -5,7 +5,7 @@ from typing import override
 import torch
 from drytorch.lib.models import EMAModel, Model
 
-from src.data.structures import Inputs, Outputs
+from src.data.structures import AutoencodingOutputs, Inputs
 from src.module.autoencoders import BaseAutoencoder
 from src.module.classifiers import BaseClassifier
 
@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-class ClassifierModel(Model[Inputs, Outputs]):
+class ClassifierModel(Model[Inputs, torch.Tensor]):
     """drytorch Model wrapper for classification architectures.
 
     Attributes:
@@ -27,13 +27,13 @@ class ClassifierModel(Model[Inputs, Outputs]):
     module: BaseClassifier
 
 
-class ClassifierEMAModel(EMAModel[Inputs, Outputs], ClassifierModel):
+class ClassifierEMAModel(EMAModel[Inputs, torch.Tensor], ClassifierModel):
     """Classifier model wrapper maintaining exponential moving average weights."""
 
     module: BaseClassifier
 
 
-class AutoencoderModel(Model[Inputs, Outputs]):
+class AutoencoderModel(Model[Inputs, AutoencodingOutputs]):
     """drytorch Model wrapper for autoencoder architectures.
 
     Attributes:
@@ -59,7 +59,7 @@ class AutoencoderModel(Model[Inputs, Outputs]):
         return torch.autocast(self.device.type, dtype=self.mixed_precision, enabled=self.mixed_precision is not None)
 
 
-class AutoencoderEMAModel(EMAModel[Inputs, Outputs], AutoencoderModel):
+class AutoencoderEMAModel(EMAModel[Inputs, AutoencodingOutputs], AutoencoderModel):
     """Autoencoder model wrapper maintaining exponential moving average weights."""
 
     module: BaseAutoencoder

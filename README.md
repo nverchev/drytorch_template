@@ -253,6 +253,26 @@ To tune on overridden experimental settings, use the `overrides` parameter and p
 uv run tune_mlp_classifier.py "overrides=['classification.train.batch_size=32']"
 ```
 
+#### Tuning in parallel
+
+Several workers can fill the same study, since they share its database. Start them with
+[GNU parallel](https://www.gnu.org/software/parallel/); `--delay` staggers the starts so the
+workers do not read the dataset at the same time:
+
+```console
+parallel -N0 --jobs 4 --delay 10 uv run tune_mlp_classifier.py tune=learn ::: {1..4}
+```
+
+With overrides, add `-q`: GNU parallel passes the command through a shell, which
+would otherwise remove the quotes Hydra needs in the list.
+
+```console
+parallel -q -N0 --jobs 4 --delay 10 uv run tune_mlp_classifier.py tune=learn "overrides=['classification.train.batch_size=32']" ::: {1..4}
+```
+
+GNU parallel sets `PARALLEL_SEQ` in each job, and the tuning script then logs only the test
+metrics, so the outputs of the workers do not interleave. Each worker runs `tune.n_trials`
+trials.
 
 ### Debugging
 

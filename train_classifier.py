@@ -120,7 +120,7 @@ def train_classification(trial: Trial | None = None) -> None:
         register_early_stopping(builder, window=cfg_early.window, patience=cfg_early.patience)
 
     if trial is not None:
-        register_pruning(builder, trial)
+        register_pruning(builder, trial, window=class_cfg.train.early_stopping.window)
     else:
         register_checkpointing(builder, checkpoint_every=user_cfg.checkpoint_every)
 

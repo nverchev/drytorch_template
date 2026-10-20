@@ -75,7 +75,7 @@ class TestHooks:
         initial_count = len(builder._post_epoch_hooks)
         mock_trial = mocker.Mock()
 
-        register_pruning(builder, trial=mock_trial)
+        register_pruning(builder, trial=mock_trial, window=1)
 
         assert len(builder._post_epoch_hooks) == initial_count + 1
         assert isinstance(builder._post_epoch_hooks[-1], TrialCallback)

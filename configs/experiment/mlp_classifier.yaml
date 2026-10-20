@@ -6,3 +6,4 @@ defaults:
 
 variation: null  # null = the current git branch
 final: false
+autoencoding: null  # null = no autoencoding phase

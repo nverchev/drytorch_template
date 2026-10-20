@@ -39,6 +39,9 @@ class BaseAutoencoder(nn.Module, abc.ABC):
         if exp_cfg.autoencoding is None:
             raise ValueError('Autoencoding configuration is missing.')
 
+        if exp_cfg.data.dataset.sequence_length is None:
+            raise ValueError('The autoencoder needs sequences: set data.dataset.sequence_length.')
+
         self.in_dim = exp_cfg.data.dataset.in_features
         self.sequence_length = exp_cfg.data.dataset.sequence_length
         self.latent_dim = exp_cfg.autoencoding.model.architecture.latent_dim

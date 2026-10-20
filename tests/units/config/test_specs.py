@@ -9,7 +9,6 @@ from src.config import environment, hydra
 from src.config.specs import (
     ExperimentConfig,
     AutoencodingConfig,
-    AutoencoderModelConfig,
     PhaseConfig,
     LinearArchitectureConfig,
     PathSpecs,
@@ -18,18 +17,11 @@ from src.config.specs import (
 
 
 class TestLinearArchitectureConfig:
-    """Test LinearArchitectureConfig initialization and defaults."""
-
-    def test_default_activation_and_norm(self) -> None:
-        """Resolve default activation and normalization classes."""
-        arch = LinearArchitectureConfig()
-
-        assert arch.act_cls is not None
-        assert arch.norm_cls is not None
+    """Test LinearArchitectureConfig initialization."""
 
     def test_custom_activation_and_norm(self) -> None:
         """Resolve custom activation and normalization class names."""
-        arch = LinearArchitectureConfig(act_cls='GELU', norm_cls='LayerNorm')
+        arch = LinearArchitectureConfig(act_cls='GELU', norm_cls='LayerNorm', hidden_dims=(8,), dropout_rate=0.0)
 
         assert arch.act_cls.__name__ == 'GELU'
         assert arch.norm_cls.__name__ == 'LayerNorm'
@@ -54,6 +46,7 @@ class TestTrainingConfig:
                 learn=train_cfg.learn,
                 n_epochs=10,
                 early_stopping=train_cfg.early_stopping,
+                mixed_precision=None,
                 _n_subprocesses=4,
             )
 
@@ -111,10 +104,10 @@ class TestAutoencodingConfig:
 
     def test_subclasses_phase_config(self) -> None:
         """Inherit phase fields from PhaseConfig."""
-        cfg = hydra.get_experiment_config()
+        cfg = hydra.get_experiment_config('signal_classifier')
         ae_cfg = AutoencodingConfig(
             name='autoencoder',
-            model=AutoencoderModelConfig(),
+            model=cfg.autoencoding.model,
             train=cfg.classification.train,
         )
 

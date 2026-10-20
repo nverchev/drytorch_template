@@ -14,7 +14,7 @@ Root config hierarchy::
     ├── autoencoding: AutoencodingConfig | None
     │   ├── name
     │   ├── model: AutoencoderModelConfig
-    │   │   └── architecture: LinearArchitectureConfig
+    │   │   └── architecture: AutoencoderArchitectureConfig
     │   └── train: TrainingConfig
     │       ├── learn: LearningConfig
     │       │   └── scheduler: SchedulerConfig
@@ -36,7 +36,6 @@ from functools import cached_property
 from typing import Any, Annotated, Self, Literal
 
 import torch
-import torch.nn as nn
 
 from pydantic import BeforeValidator, Field, PlainValidator, model_validator
 from pydantic.dataclasses import dataclass
@@ -44,7 +43,6 @@ from pydantic.dataclasses import dataclass
 from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
 from src.config.torch import (
     ActClass,
-    GroupedNorm,
     NormClass,
     get_activation_cls,
     get_device,
@@ -80,8 +78,8 @@ class BaseArchitectureConfig:
         act_cls: Activation of the layers, written by its name, e.g. ``ReLU``.
     """
 
-    norm_cls: NormalizationClass = GroupedNorm
-    act_cls: ActivationClass = nn.ELU
+    norm_cls: NormalizationClass
+    act_cls: ActivationClass
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -93,9 +91,19 @@ class LinearArchitectureConfig(BaseArchitectureConfig):
         dropout_rate: Dropout probability applied between hidden layers.
     """
 
-    hidden_dims: tuple[StrictlyPositiveInt, ...] = (256, 128)
-    dropout_rate: PositiveFloat = 0.0
-    latent_dim: StrictlyPositiveInt = 32
+    hidden_dims: tuple[StrictlyPositiveInt, ...]
+    dropout_rate: PositiveFloat
+
+
+@dataclass(frozen=True, kw_only=True)
+class AutoencoderArchitectureConfig(LinearArchitectureConfig):
+    """Autoencoder architecture parameters.
+
+    Attributes:
+        latent_dim: Bottleneck dimension of the latent encodings.
+    """
+
+    latent_dim: StrictlyPositiveInt
 
 
 @dataclass(frozen=True)
@@ -108,9 +116,9 @@ class ClassifierModelConfig:
         ema_decay: Exponential moving average decay for the EMA model copy.
     """
 
-    class_name: Classifiers = Classifiers.MLP_CLASSIFIER
-    architecture: LinearArchitectureConfig = dataclasses.field(default_factory=LinearArchitectureConfig)
-    ema_decay: float = 0.999
+    class_name: Classifiers
+    architecture: LinearArchitectureConfig
+    ema_decay: float
 
 
 @dataclass(frozen=True)
@@ -123,9 +131,9 @@ class AutoencoderModelConfig:
         ema_decay: Exponential moving average decay for the EMA model copy.
     """
 
-    class_name: Autoencoders = Autoencoders.CNN_RES_AUTOENCODER
-    architecture: LinearArchitectureConfig = dataclasses.field(default_factory=LinearArchitectureConfig)
-    ema_decay: float = 0.999
+    class_name: Autoencoders
+    architecture: AutoencoderArchitectureConfig
+    ema_decay: float
 
 
 # ---------------------------------------------------------------------------
@@ -141,19 +149,19 @@ class DatasetConfig:
         name: Name of the dataset.
         selected_classes: Subset of class names to include (empty uses all).
         in_features: Feature dimension for each sample.
-        sequence_length: Length of sequence or signal samples.
+        sequence_length: Length of sequence or signal samples; ``None`` for flat feature vectors.
         n_train_samples: Number of training split samples.
         n_val_samples: Number of validation split samples.
         n_test_samples: Number of test split samples.
     """
 
-    name: Datasets = Datasets.SYNTHETIC
-    selected_classes: list[str] = dataclasses.field(default_factory=list)
-    in_features: StrictlyPositiveInt = 64
-    sequence_length: StrictlyPositiveInt = 128
-    n_train_samples: StrictlyPositiveInt = 1000
-    n_val_samples: StrictlyPositiveInt = 200
-    n_test_samples: StrictlyPositiveInt = 200
+    name: Datasets
+    selected_classes: list[str]
+    in_features: StrictlyPositiveInt
+    sequence_length: StrictlyPositiveInt | None
+    n_train_samples: StrictlyPositiveInt
+    n_val_samples: StrictlyPositiveInt
+    n_test_samples: StrictlyPositiveInt
 
 
 @dataclass(frozen=True)
@@ -164,7 +172,7 @@ class PreprocessConfig:
         normalize: Whether to normalize input features to zero mean and unit variance.
     """
 
-    normalize: bool = True
+    normalize: bool
 
 
 @dataclass(frozen=True)
@@ -175,7 +183,7 @@ class AugmentationConfig:
         noise: Noise quantity added to features (0.0 means no noise).
     """
 
-    noise: PositiveFloat = 0.0
+    noise: PositiveFloat
 
 
 @dataclass(frozen=True)
@@ -188,9 +196,9 @@ class DataConfig:
         augmentation: Data augmentation flags.
     """
 
-    dataset: DatasetConfig = dataclasses.field(default_factory=DatasetConfig)
-    preprocess: PreprocessConfig = dataclasses.field(default_factory=PreprocessConfig)
-    augmentation: AugmentationConfig = dataclasses.field(default_factory=AugmentationConfig)
+    dataset: DatasetConfig
+    preprocess: PreprocessConfig
+    augmentation: AugmentationConfig
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +223,7 @@ class SchedulerConfig:
     restart_interval: PositiveInt
     restart_fraction: PositiveFloat
     warmup_steps: PositiveInt
-    settings: dict[str, Any] = dataclasses.field(default_factory=dict)
+    settings: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -236,9 +244,9 @@ class LearningConfig:
     optimizer: OptimizerClass
     lr: PositiveFloat
     scheduler: SchedulerConfig
-    grad_op: GradOp | None = None
-    clip_criterion: ClipCriterion | None = None
-    opt_settings: dict[str, Any] = dataclasses.field(default_factory=dict)
+    grad_op: GradOp | None
+    clip_criterion: ClipCriterion | None
+    opt_settings: dict[str, Any]
 
     @model_validator(mode='after')
     def _check_clip_criterion(self) -> Self:
@@ -260,8 +268,8 @@ class EarlyStoppingConfig:
     """
 
     active: bool
-    window: int = 1
-    patience: int = 10
+    window: int
+    patience: int
 
 
 @dataclass(frozen=True)
@@ -281,7 +289,7 @@ class TrainingConfig:
     n_epochs: StrictlyPositiveInt
     early_stopping: EarlyStoppingConfig
     _n_subprocesses: PositiveInt
-    mixed_precision: MixedPrecision = None
+    mixed_precision: MixedPrecision
 
     @model_validator(mode='after')
     def _check_batch_divisibility(self) -> Self:
@@ -419,7 +427,7 @@ class PlottingSettings:
         show: Also display the learning curves of the plotting trackers after training (needs a display).
     """
 
-    show: bool = False
+    show: bool
 
 
 @dataclass(frozen=True)
@@ -446,10 +454,10 @@ class UserSettings:
     trackers: TrackerList
     seed: int | None
     checkpoint_every: PositiveInt
-    torch_compile: bool = False
-    load: int = 0
-    run_id: str | None = None
-    plot: PlottingSettings = dataclasses.field(default_factory=PlottingSettings)
+    torch_compile: bool
+    load: int
+    run_id: str | None
+    plot: PlottingSettings
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
 
@@ -484,7 +492,7 @@ class ExperimentConfig:
     user: UserSettings
     data: DataConfig
     final: bool
-    autoencoding: AutoencodingConfig | None = None
+    autoencoding: AutoencodingConfig | None
     variation: str | None = None
     tags: list[str] = dataclasses.field(default_factory=list)
     version: str = dataclasses.field(default=f'v{VERSION}', init=False)

@@ -41,6 +41,9 @@ class SignalDataBuilder(DataBuilder):
         """Initialize."""
         cfg = Experiment.get_config()
         cfg_dataset = cfg.data.dataset
+        if cfg_dataset.sequence_length is None:
+            raise ValueError('The signal dataset needs data.dataset.sequence_length.')
+
         self.final = cfg.final
         self.in_features = cfg_dataset.in_features
         self.sequence_length = cfg_dataset.sequence_length

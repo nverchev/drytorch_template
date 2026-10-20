@@ -40,12 +40,12 @@ def _get_test_builder() -> TrainerBuilder[Any, Any, Any]:
 class TestHooks:
     """Test hook registration functions."""
 
-    def test_register_checkpointing_noop_when_none(self) -> None:
-        """Skip registering checkpointing hook when interval is None."""
+    def test_register_checkpointing_noop_when_zero(self) -> None:
+        """Skip registering checkpointing hook when interval is zero."""
         builder = _get_test_builder()
         initial_count = len(builder._post_epoch_hooks)
 
-        register_checkpointing(builder, checkpoint_every=None)
+        register_checkpointing(builder, checkpoint_every=0)
 
         assert len(builder._post_epoch_hooks) == initial_count
 

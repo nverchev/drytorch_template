@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from drytorch.contrib.optuna import TrialCallback
 from drytorch.lib.training import TrainerBuilder
 from drytorch.utils.averages import get_moving_average, get_trailing_mean
 
@@ -14,12 +13,12 @@ __all__ = [
 ]
 
 
-def register_checkpointing(builder: TrainerBuilder[Any, Any, Any], /, checkpoint_every: int | None = None) -> None:
+def register_checkpointing(builder: TrainerBuilder[Any, Any, Any], /, *, checkpoint_every: int) -> None:
     """Register the checkpointing hook.
 
     Args:
         builder: trainer builder to register the saving hook to.
-        checkpoint_every: save frequency in epochs.
+        checkpoint_every: save frequency in epochs; ``0`` adds no saving.
     """
     if checkpoint_every:
         builder.add_saving(checkpoint_every)
@@ -49,5 +48,7 @@ def register_pruning(builder: TrainerBuilder[Any, Any, Any], /, trial: Any = Non
         builder: trainer builder to register pruning callback to.
         trial: Optuna trial object.
     """
+    from drytorch.contrib.optuna import TrialCallback
+
     builder.add_post_epoch_hook(TrialCallback(trial, watch=builder.watch(filter_fn=get_moving_average())))
     return

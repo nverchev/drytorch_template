@@ -74,7 +74,7 @@ def train_autoencoder(trial: Trial | None = None) -> None:
     if trial is not None:
         register_pruning(builder, trial)
     else:
-        register_checkpointing(builder, user_cfg.checkpoint_every or 1)
+        register_checkpointing(builder, checkpoint_every=user_cfg.checkpoint_every)
 
     trainer = builder.build()
     if cfg.final:

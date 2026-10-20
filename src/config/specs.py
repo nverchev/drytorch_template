@@ -433,7 +433,7 @@ class UserSettings:
         n_subprocesses: Number of DDP processes. ``0`` disables distributed training.
         trackers: Active experiment-tracking backends.
         seed: Global random seed for reproducibility. ``None`` leaves it unset.
-        checkpoint_every: Save a model checkpoint every *n* epochs.
+        checkpoint_every: Save a model checkpoint every *n* epochs; ``0`` saves only at the end of training.
         torch_compile: Whether to compile the model with torch.compile.
         load: Checkpoint epoch to resume from:``0`` skip; ``-1`` loads last checkpoint.
         run_id: Run to resume. Defaults to the last run of the experiment.

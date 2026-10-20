@@ -197,6 +197,17 @@ uv run train_classifier.py
 uv run train_classifier.py user.n_subprocesses=2   # DDP
 ```
 
+### Final pipeline
+
+The final models train on `train` and `val` and are evaluated on `test`. Run every phase of
+a configuration with the same overrides:
+
+```console
+uv run train_classifier.py final=true                                  # mlp_classifier
+uv run train_autoencoder.py --config-name signal_classifier final=true # signal_classifier
+uv run train_classifier.py --config-name signal_classifier final=true
+```
+
 ### Profile
 
 ```console

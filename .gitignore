@@ -5,8 +5,8 @@ experiments*/
 optimization_db/
 outputs/
 .agent/
+.claude/
 .env
 .idea/
 .vscode/
 wandb
-uv.lock

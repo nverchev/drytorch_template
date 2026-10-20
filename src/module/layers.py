@@ -270,7 +270,7 @@ class BaseLayer(nn.Module, metaclass=abc.ABCMeta):
         Returns:
             callable that initializes a bias tensor.
         """
-        return torch.nn.init.zeros_ if use_trunc_init else lambda x: x
+        return torch.nn.init.zeros_ if use_trunc_init else _keep_unchanged
 
     @staticmethod
     def get_norm_layer(norm_cls: NormClass | None, out_dim: int) -> nn.Module | None:
@@ -556,3 +556,7 @@ def reset_parameters_recursive(module: nn.Module, /, *, warn: bool = False) -> N
         reset_parameters_recursive(child, warn=warn)
 
     return
+
+
+def _keep_unchanged(tensor: torch.Tensor, /) -> torch.Tensor:
+    return tensor

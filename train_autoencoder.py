@@ -7,7 +7,7 @@ Usage::
 
 from typing import TYPE_CHECKING, Any
 
-from drytorch import Test, Trainer, Validation
+from drytorch import Test, Trainer
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers, save_learning_curves
@@ -77,11 +77,6 @@ def train_autoencoder(trial: Trial | None = None) -> None:
         register_checkpointing(builder, checkpoint_every=user_cfg.checkpoint_every)
 
     trainer = builder.build()
-    if cfg.final:
-        evaluation = Test(model, loader=eval_loader, metric=loss, name='MSETest')
-    else:
-        evaluation = Validation(model, loader=eval_loader, metric=loss, name='MSEValidation')
-
     if user_cfg.load:
         trainer.load_checkpoint(user_cfg.load)
 
@@ -89,7 +84,10 @@ def train_autoencoder(trial: Trial | None = None) -> None:
     if trial is None:
         trainer.save_checkpoint()
 
-    evaluation()
+    # without final, the validation of every epoch already evaluates the model
+    if cfg.final:
+        Test(model, loader=eval_loader, metric=loss, name='MSETest')()
+
     return
 
 

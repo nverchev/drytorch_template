@@ -231,6 +231,8 @@ Requires the `finetune` extra dependency (see Setup). The tuning configuration i
 - `overrides` lists the experiment overrides every trial starts from;
 - `n_epochs` is the length of each trial (typically set to a fraction of the full training length).
 - `mixed_precision` optionally sets the autocast precision of the trials; with `float16`, the DRYTorch trainer also scales the gradients.
+- `tune.use_pruner=true` stops unpromising trials early with Optuna's Hyperband pruner, set by
+  `tune.min_resource`, `tune.max_resource` and `tune.reduction_factor` (in epochs).
 
 Trials are stored in `optimization_db/`. To plot a study, pass
 `plot_tuning_results.py` the same `tune`, `config_name` and `overrides` as the
@@ -257,22 +259,32 @@ uv run tune_mlp_classifier.py "overrides=['classification.train.batch_size=32']"
 
 Several workers can fill the same study, since they share its database. Start them with
 [GNU parallel](https://www.gnu.org/software/parallel/); `--delay` staggers the starts so the
-workers do not read the dataset at the same time:
+workers do not read the dataset at the same time, and `--line-buffer` prints each line as it
+comes instead of the whole output of a worker when it ends:
 
 ```console
-parallel -N0 --jobs 4 --delay 10 uv run tune_mlp_classifier.py tune=learn ::: {1..4}
+parallel -N0 --line-buffer --jobs 4 --delay 10 uv run tune_mlp_classifier.py tune=learn ::: {1..4}
 ```
 
 With overrides, add `-q`: GNU parallel passes the command through a shell, which
 would otherwise remove the quotes Hydra needs in the list.
 
 ```console
-parallel -q -N0 --jobs 4 --delay 10 uv run tune_mlp_classifier.py tune=learn "overrides=['classification.train.batch_size=32']" ::: {1..4}
+parallel -q -N0 --line-buffer --jobs 4 --delay 10 uv run tune_mlp_classifier.py tune=learn "overrides=['classification.train.batch_size=32']" ::: {1..4}
 ```
 
 GNU parallel sets `PARALLEL_SEQ` in each job, and the tuning script then logs only the test
 metrics, so the outputs of the workers do not interleave. Each worker runs `tune.n_trials`
 trials.
+
+All workers use the first accelerator unless told otherwise. To spread them over two GPUs,
+give each job its own with `CUDA_VISIBLE_DEVICES`: the inputs become the GPU numbers, which
+replace `{}`, so `-N0` is no longer needed. Do not set `user.device` in `overrides` instead:
+the overrides form the study name, so the workers would fill different studies.
+
+```console
+parallel -q --line-buffer --jobs 4 --delay 10 env CUDA_VISIBLE_DEVICES={} uv run tune_mlp_classifier.py tune=learn ::: 0 1 0 1
+```
 
 ### Debugging
 

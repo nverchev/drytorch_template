@@ -5,5 +5,5 @@ defaults:
 
 batch_size: 32
 n_epochs: 15
-mixed_precision:  # a linear model on the encodings gains little from it
+mixed_precision: null  # null = full precision
 _n_subprocesses: ${user.n_subprocesses}

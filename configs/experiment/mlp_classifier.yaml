@@ -4,5 +4,5 @@ defaults:
   - data: synthetic
   - _self_
 
-variation:
+variation: null  # null = the current git branch
 final: false

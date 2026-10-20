@@ -4,7 +4,7 @@ defaults:
   - tune: learn
 
 db_name: optimization
-config_name: mlp_classifier  # the experiment configuration the trials start from
-overrides: []  # fixed overrides of every trial
+config_name: mlp_classifier
+overrides: []
 n_epochs: 3
-mixed_precision: float16  # autocast precision of the trials; empty keeps the experiment's
+mixed_precision: float16  # lowered precision for tuning

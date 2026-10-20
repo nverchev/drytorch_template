@@ -4,7 +4,7 @@ defaults:
 
 optimizer: AdamW
 lr: 1e-3
-grad_op: null  # see src.config.options.GradOp
-clip_criterion: null  # for hist_clipper and param_hist_clipper
+grad_op: null
+clip_criterion: null
 opt_settings:
   weight_decay: 1e-4

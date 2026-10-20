@@ -22,7 +22,7 @@ Root config hierarchy::
     ├── data: DataConfig
     └── user: UserSettings
         ├── trackers: TrackerList
-        ├── visualization: VisualizationSettings
+        ├── plot: PlottingSettings
         ├── path: PathSpecs          ← populated from .env
         └── hydra: HydraSettings     ← populated at runtime
 
@@ -412,7 +412,7 @@ class PathSpecs:
 
 
 @dataclass(frozen=True)
-class VisualizationSettings:
+class PlottingSettings:
     """Options for visual inspection.
 
     Attributes:
@@ -437,7 +437,7 @@ class UserSettings:
         torch_compile: Whether to compile the model with torch.compile.
         load: Checkpoint epoch to resume from:``0`` skip; ``-1`` loads last checkpoint.
         run_id: Run to resume. Defaults to the last run of the experiment.
-        visualization: Options for visual inspection.
+        plot: Options for visual inspection.
     """
 
     device: Device
@@ -449,7 +449,7 @@ class UserSettings:
     torch_compile: bool = False
     load: int = 0
     run_id: str | None = None
-    visualization: VisualizationSettings = dataclasses.field(default_factory=VisualizationSettings)
+    plot: PlottingSettings = dataclasses.field(default_factory=PlottingSettings)
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
 

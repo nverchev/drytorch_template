@@ -104,7 +104,7 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_autoencoder()
         if cfg.autoencoding is not None:
-            save_learning_curves(trackers, cfg.autoencoding.name, show=cfg.user.visualization.show)
+            save_learning_curves(trackers, cfg.autoencoding.name, show=cfg.user.plot.show)
 
     return
 

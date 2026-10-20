@@ -23,6 +23,6 @@ trackers:
   matplotlib: false
   plotly: false
 
-# Visualization
-visualization:
+# Plotting
+plot:
   show: false

@@ -4,6 +4,16 @@ study_name:
 n_trials: 100
 
 params:
+  # a list of 1 to 3 hidden layers, each with one of the sizes
+  classification.model.architecture.hidden_dims:
+    suggest: suggest_list
+    settings:
+      min_length: 1
+      max_length: 3
+      suggest: suggest_categorical
+      settings:
+        choices: [64, 128, 256]
+
   classification.model.architecture.dropout_rate:
     suggest: suggest_float
     settings:

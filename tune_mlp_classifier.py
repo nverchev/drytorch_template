@@ -21,7 +21,7 @@ from drytorch.core.exceptions import ConvergenceError
 
 from src.config import ConfigPath, Experiment, get_experiment_config
 from src.trackers import set_tuning_logging
-from src.utils.tuning import impute_failed_trial, impute_pruned_trial, get_study_name, log_study_settings
+from src.utils.tuning import impute_failed_trial, get_study_name, log_study_settings
 
 from train_classifier import train_classification
 
@@ -37,15 +37,12 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
         if tune_cfg.mixed_precision is not None:
             overrides.append(f'classification.train.mixed_precision={tune_cfg.mixed_precision}')
 
-        trial_cfg = get_experiment_config(tune_cfg.config_name, overrides=[*tune_cfg.overrides, *overrides])
+        trial_cfg = get_experiment_config(tune_cfg.config_name, overrides=overrides)
 
         exp = Experiment(trial_cfg, name=trial_cfg.name, par_dir=trial_cfg.par_dir, tags=trial_cfg.tags)
         with exp.create_run(record=False):
             try:
                 train_classification(trial=trial)
-            except optuna.TrialPruned:
-                return impute_pruned_trial(trial)
-
             except ConvergenceError:
                 return impute_failed_trial(trial)
 
@@ -89,7 +86,9 @@ def main(tune_cfg: DictConfig) -> None:
         study_name=study_name, storage=tune_cfg.storage, sampler=sampler, pruner=pruner, load_if_exists=True
     )
     log_study_settings(study, tune_cfg)
-    study.optimize(set_objective(tune_cfg), n_trials=tune_cfg.tune.n_trials)
+    # the trials of the study, from every worker and every run, stop at n_trials
+    max_trials = optuna.study.MaxTrialsCallback(tune_cfg.tune.n_trials, states=None)
+    study.optimize(set_objective(tune_cfg), n_trials=tune_cfg.tune.n_trials, callbacks=[max_trials])
     return
 
 

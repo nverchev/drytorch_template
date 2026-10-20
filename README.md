@@ -234,6 +234,11 @@ Requires the `finetune` extra dependency (see Setup). The tuning configuration i
 - `tune.use_pruner=true` stops unpromising trials early with Optuna's Hyperband pruner, set by
   `tune.min_resource`, `tune.max_resource` and `tune.reduction_factor` (in epochs).
 
+A search space lists the settings to tune under `params`, each with an Optuna `suggest_*`
+method and its arguments. `suggest_list` tunes a list of variable length: it suggests the
+length between `min_length` and `max_length`, then each element with the nested method, as
+for the hidden layers in `configs/tuning/tune/architecture.yaml`.
+
 Trials are stored in `optimization_db/`. To plot a study, pass
 `plot_tuning_results.py` the same `tune`, `config_name` and `overrides` as the
 tuning run, since they form the study name. `renderer` chooses where the plots
@@ -274,8 +279,10 @@ parallel -q -N0 --line-buffer --jobs 4 --delay 10 uv run tune_mlp_classifier.py 
 ```
 
 GNU parallel sets `PARALLEL_SEQ` in each job, and the tuning script then logs only the test
-metrics, so the outputs of the workers do not interleave. Each worker runs `tune.n_trials`
-trials.
+metrics, so the outputs of the workers do not interleave. `tune.n_trials` is the size of the
+study: the workers stop once it holds that many trials, counting those of earlier runs, so
+raise it to continue a study. Each worker still finishes the trial it is running, so a study
+can end a few trials past `tune.n_trials`.
 
 All workers use the first accelerator unless told otherwise. To spread them over two GPUs,
 give each job its own with `CUDA_VISIBLE_DEVICES`: the inputs become the GPU numbers, which

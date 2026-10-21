@@ -9,7 +9,7 @@ from torch import Tensor
 from drytorch.core import log_events
 from drytorch.trackers.logging import INFO_LEVELS, BuiltinLogger, logger
 
-from src.train.events import ConfusionMatrixEvent
+from src.lib.events import ConfusionMatrixEvent
 
 __all__ = ['ClassificationLogger']
 

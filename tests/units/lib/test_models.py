@@ -7,7 +7,7 @@ import torch
 from src import module
 from src.config import experiment, hydra
 from src.data import structures
-from src.train.models import (
+from src.lib.models import (
     AutoencoderEMAModel,
     AutoencoderModel,
     ClassifierEMAModel,

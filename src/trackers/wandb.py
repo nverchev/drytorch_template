@@ -9,7 +9,7 @@ import wandb
 from drytorch.core import log_events
 from drytorch.trackers.wandb import Wandb
 
-from src.train.events import ConfusionMatrixEvent
+from src.lib.events import ConfusionMatrixEvent
 
 __all__ = ['ClassificationWandb']
 

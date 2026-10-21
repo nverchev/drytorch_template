@@ -13,11 +13,11 @@ from drytorch import Test, Trainer, Validation
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers, save_learning_curves
 from src.config.environment import DEBUG_MODE
-from src.train.events import ConfusionMatrixEvent
+from src.lib.events import ConfusionMatrixEvent
 from src.data.dataset import get_databuilder, get_splits
 from src.data.derived_dataset import EncodedDataset
 from src.module import get_autoencoder, get_classifier
-from src.train import (
+from src.lib import (
     ClassifierEMAModel,
     ClassifierModel,
     get_classification_loss,
@@ -25,9 +25,9 @@ from src.train import (
     get_learning_schema,
     get_loaders,
 )
-from src.train.hooks import register_checkpointing, register_early_stopping, register_pruning
-from src.train.models import AutoencoderEMAModel, load_trained_state
-from src.train.objectives import AggregatedAccuracy
+from src.lib.hooks import register_checkpointing, register_early_stopping, register_pruning
+from src.lib.models import AutoencoderEMAModel, load_trained_state
+from src.lib.objectives import AggregatedAccuracy
 from src.utils.parallel import DistributedWorker
 
 if TYPE_CHECKING:

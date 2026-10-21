@@ -12,7 +12,7 @@ from torch.utils import data
 from src.data.structures import Inputs, Targets
 
 if TYPE_CHECKING:
-    from src.train.models import AutoencoderModel
+    from src.lib.models import AutoencoderModel
 
 __all__ = ['EncodedDataset']
 

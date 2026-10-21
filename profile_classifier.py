@@ -13,7 +13,7 @@ from drytorch.lib.loading import take_from_dataset
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.data.dataset import get_splits
 from src.module import get_classifier
-from src.train import get_classification_loss
+from src.lib import get_classification_loss
 from src.utils.profiling import profile_backward, profile_forward, log_parameter_counts
 
 

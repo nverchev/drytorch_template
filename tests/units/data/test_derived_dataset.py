@@ -7,7 +7,7 @@ from src.config import experiment, hydra
 from src.data.derived_dataset import EncodedDataset
 from src.data.split import DataSplit
 from src.module.autoencoders import CNNResAutoencoder
-from src.train.models import AutoencoderEMAModel
+from src.lib.models import AutoencoderEMAModel
 
 
 class TestEncodedDataset:

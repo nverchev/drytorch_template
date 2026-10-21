@@ -2,7 +2,7 @@
 
 from drytorch.lib import schedulers
 from src.config import options, specs
-from src.train.learning_schema import get_scheduler
+from src.lib.learning_schema import get_scheduler
 
 
 class TestLearningSchema:

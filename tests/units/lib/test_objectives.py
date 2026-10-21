@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from src.data import structures
-from src.train.objectives import (
+from src.lib.objectives import (
     AggregatedAccuracy,
     get_accuracy,
     get_autoencoder_loss,

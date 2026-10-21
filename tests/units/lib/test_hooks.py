@@ -11,8 +11,8 @@ from drytorch.lib.training import TrainerBuilder
 from src import module
 from src.config import experiment
 from src.data import dataset
-from src.train import learning_schema, models, objectives
-from src.train.hooks import register_checkpointing, register_early_stopping, register_pruning
+from src.lib import learning_schema, models, objectives
+from src.lib.hooks import register_checkpointing, register_early_stopping, register_pruning
 
 
 def _get_test_builder() -> TrainerBuilder[Any, Any, Any]:

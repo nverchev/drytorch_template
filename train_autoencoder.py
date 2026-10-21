@@ -13,9 +13,9 @@ from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers, save_learning_curves
 from src.config.environment import DEBUG_MODE
 from src.module import get_autoencoder
-from src.train import get_autoencoder_loss, get_learning_schema, get_loaders
-from src.train.hooks import register_checkpointing, register_early_stopping, register_pruning
-from src.train.models import AutoencoderEMAModel, AutoencoderModel
+from src.lib import get_autoencoder_loss, get_learning_schema, get_loaders
+from src.lib.hooks import register_checkpointing, register_early_stopping, register_pruning
+from src.lib.models import AutoencoderEMAModel, AutoencoderModel
 from src.utils.parallel import DistributedWorker
 
 if TYPE_CHECKING:

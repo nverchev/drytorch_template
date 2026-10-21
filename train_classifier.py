@@ -26,7 +26,7 @@ from src.train import (
     get_loaders,
 )
 from src.train.hooks import register_checkpointing, register_early_stopping, register_pruning
-from src.train.models import AutoencoderEMAModel
+from src.train.models import AutoencoderEMAModel, load_trained_state
 from src.train.objectives import AggregatedAccuracy
 from src.utils.parallel import DistributedWorker
 
@@ -52,7 +52,7 @@ def load_autoencoder() -> AutoencoderEMAModel:
         mixed_precision=ae_cfg.train.mixed_precision,
         torch_compile=cfg.user.torch_compile,
     )
-    model.load_state(cfg.user.load or -1)
+    load_trained_state(model, epoch=cfg.user.load or -1)
     return model
 
 

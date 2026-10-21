@@ -1,10 +1,12 @@
 """Model and EMAModel wrappers for training phases."""
 
-from typing import override
+from typing import Any, override
 
 import torch
+from drytorch.core.exceptions import ModelNotFoundError
 from drytorch.lib.models import EMAModel, Model
 
+from src.config import Experiment
 from src.data.structures import AutoencodingOutputs, Inputs
 from src.module.autoencoders import BaseAutoencoder
 from src.module.classifiers import BaseClassifier
@@ -14,6 +16,7 @@ __all__ = [
     'AutoencoderModel',
     'ClassifierEMAModel',
     'ClassifierModel',
+    'load_trained_state',
 ]
 
 
@@ -78,3 +81,26 @@ class AutoencoderEMAModel(EMAModel[Inputs, AutoencodingOutputs], AutoencoderMode
         """
         with self._autocast():
             return self.averaged_module.encode(inputs).float()
+
+
+def load_trained_state(model: Model[Any, Any], /, *, epoch: int = -1) -> None:
+    """Load the weights of a model trained by an earlier phase of the experiment.
+
+    Args:
+        model: the model to load.
+        epoch: the epoch to load. Default loads the last saved epoch.
+
+    Raises:
+        RuntimeError: if the experiment holds no trained model.
+    """
+    try:
+        model.load_state(epoch)
+    except ModelNotFoundError as error:
+        cfg = Experiment.get_config()
+        msg = (
+            f'No trained {model.name} for the experiment {cfg.name} in {cfg.par_dir}: '
+            'train it first with the same configuration and overrides.'
+        )
+        raise RuntimeError(msg) from error
+
+    return

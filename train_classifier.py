@@ -8,7 +8,7 @@ Usage::
 
 from typing import TYPE_CHECKING, Any, cast
 
-from drytorch import Test, Trainer, Validation
+from drytorch import Test, Trainer
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers, save_learning_curves
@@ -125,11 +125,6 @@ def train_classification(trial: Trial | None = None) -> None:
         register_checkpointing(builder, checkpoint_every=user_cfg.checkpoint_every)
 
     trainer = builder.build()
-    if cfg.final:
-        evaluation = Test(model, loader=eval_loader, metric=accuracy, name='AccuracyTest')
-    else:
-        evaluation = Validation(model, loader=eval_loader, metric=accuracy, name='AccuracyValidation')
-
     if user_cfg.load:
         trainer.load_checkpoint(user_cfg.load)
 
@@ -137,14 +132,13 @@ def train_classification(trial: Trial | None = None) -> None:
     if trial is None:
         trainer.save_checkpoint()
 
-    evaluation()
-
-    evaluated_accuracy = cast(AggregatedAccuracy, evaluation.objective)
+    test = Test(model, loader=eval_loader, metric=accuracy, name='Accuracy')
+    test()
     ConfusionMatrixEvent(
-        source_name=evaluation.name,
+        source_name=test.name,
         model_name=model.name,
         epoch=model.epoch,
-        matrix=evaluated_accuracy.confusion_matrix,
+        matrix=accuracy.confusion_matrix,
     )
     return
 

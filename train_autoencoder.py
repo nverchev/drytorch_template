@@ -86,7 +86,7 @@ def train_autoencoder(trial: Trial | None = None) -> None:
 
     # without final, the validation of every epoch already evaluates the model
     if cfg.final:
-        Test(model, loader=eval_loader, metric=loss, name='MSETest')()
+        Test(model, loader=eval_loader, metric=loss.copy(), name='MSETest')()
 
     return
 

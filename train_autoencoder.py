@@ -7,7 +7,7 @@ Usage::
 
 from typing import TYPE_CHECKING, Any
 
-from drytorch import Test, Trainer
+from drytorch import Trainer
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers, save_learning_curves
@@ -83,10 +83,6 @@ def train_autoencoder(trial: Trial | None = None) -> None:
     trainer.train_until(ae_cfg.train.n_epochs)
     if trial is None:
         trainer.save_checkpoint()
-
-    # without final, the validation of every epoch already evaluates the model
-    if cfg.final:
-        Test(model, loader=eval_loader, metric=loss.copy(), name='MSETest')()
 
     return
 

@@ -180,6 +180,7 @@ first, with the same overrides:
 uv run train_autoencoder.py --config-name signal_classifier                                # main
 uv run clone_experiment.py --config-name signal_classifier classification.train.learn.lr=1e-4
 uv run train_classifier.py --config-name signal_classifier classification.train.learn.lr=1e-4
+uv run evaluate_classifier.py --config-name signal_classifier classification.train.learn.lr=1e-4
 ```
 
 `clone_experiment.py` clones the experiment of the current variation (`main`
@@ -190,22 +191,27 @@ how its autoencoder was trained.
 
 ## Usage
 
-### Train
+### Train and evaluate
+
+The training scripts only train and save the models; the evaluation script loads the classifier and tests it on the validation split, or on the test split with `final=true`.
 
 ```console
 uv run train_classifier.py
+uv run evaluate_classifier.py
 uv run train_classifier.py user.n_subprocesses=2   # DDP
 ```
 
 ### Final pipeline
 
 The final models train on `train` and `val` and are evaluated on `test`. Run every phase of
-a configuration with the same overrides:
+a configuration with the same overrides, and evaluate once all of them are trained:
 
 ```console
 uv run train_classifier.py final=true                                  # mlp_classifier
 uv run train_autoencoder.py --config-name signal_classifier final=true # signal_classifier
 uv run train_classifier.py --config-name signal_classifier final=true
+uv run evaluate_classifier.py final=true
+uv run evaluate_classifier.py --config-name signal_classifier final=true
 ```
 
 ### Profile
@@ -364,6 +370,7 @@ Repeat the training steps for each entry configuration, one script per phase
 ```console
 uv run train_autoencoder.py --config-name signal_classifier
 uv run train_classifier.py --config-name signal_classifier
+uv run evaluate_classifier.py --config-name signal_classifier
 ```
 
 Finally, train each baseline on the training and validation splits and
@@ -375,6 +382,8 @@ they stopped at:
 uv run train_classifier.py final=true user.seed=0
 uv run train_autoencoder.py --config-name signal_classifier final=true user.seed=0
 uv run train_classifier.py --config-name signal_classifier final=true user.seed=0
+uv run evaluate_classifier.py final=true
+uv run evaluate_classifier.py --config-name signal_classifier final=true
 ```
 
 ## Projects using this template

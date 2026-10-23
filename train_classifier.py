@@ -6,19 +6,17 @@ Usage::
     uv run train_classifier.py --config-name signal_classifier
 """
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
-from drytorch import Test, Trainer
+from drytorch import Trainer
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers, save_learning_curves
 from src.config.environment import DEBUG_MODE
-from src.lib.events import ConfusionMatrixEvent
-from src.data.dataset import get_databuilder, get_splits
+from src.data.dataset import get_splits
 from src.data.derived_dataset import EncodedDataset
-from src.module import get_autoencoder, get_classifier
+from src.module import get_classifier
 from src.lib import (
-    ClassifierEMAModel,
     ClassifierModel,
     get_classification_loss,
     get_encoded_loaders,
@@ -26,34 +24,13 @@ from src.lib import (
     get_loaders,
 )
 from src.lib.hooks import register_checkpointing, register_early_stopping, register_pruning
-from src.lib.models import AutoencoderEMAModel, load_trained_state
-from src.lib.objectives import AggregatedAccuracy
+from src.lib.models import get_classifier_ema_model, load_autoencoder_model
 from src.utils.parallel import DistributedWorker
 
 if TYPE_CHECKING:
     from optuna import Trial
 else:
     Trial = Any
-
-
-def load_autoencoder() -> AutoencoderEMAModel:
-    """Load the trained autoencoder with the weights it was evaluated with."""
-    cfg = Experiment.get_config()
-    if cfg.autoencoding is None:
-        raise ValueError('Autoencoding configuration is missing.')
-
-    ae_cfg = cfg.autoencoding
-    autoencoder = get_autoencoder()
-    model = AutoencoderEMAModel(
-        autoencoder,
-        decay=ae_cfg.model.ema_decay,
-        device=cfg.user.device,
-        name=ae_cfg.name,
-        mixed_precision=ae_cfg.train.mixed_precision,
-        torch_compile=cfg.user.torch_compile,
-    )
-    load_trained_state(model, epoch=cfg.user.load or -1)
-    return model
 
 
 def train_classification(trial: Trial | None = None) -> None:
@@ -67,19 +44,11 @@ def train_classification(trial: Trial | None = None) -> None:
     cfg = Experiment.get_config()
     user_cfg = cfg.user
     class_cfg = cfg.classification
-    classifier = get_classifier()
     if trial is None:
-        model = ClassifierEMAModel(
-            classifier,
-            decay=class_cfg.model.ema_decay,
-            device=user_cfg.device,
-            name=class_cfg.name,
-            mixed_precision=class_cfg.train.mixed_precision,
-            torch_compile=user_cfg.torch_compile,
-        )
+        model = get_classifier_ema_model()
     else:
         model = ClassifierModel(
-            classifier,
+            get_classifier(),
             device=user_cfg.device,
             name=class_cfg.name,
             mixed_precision=class_cfg.train.mixed_precision,
@@ -87,7 +56,7 @@ def train_classification(trial: Trial | None = None) -> None:
         )
 
     train_split, eval_split = get_splits()
-    autoencoder = None if cfg.autoencoding is None else load_autoencoder()
+    autoencoder = None if cfg.autoencoding is None else load_autoencoder_model()
     if autoencoder is not None:
         encoded_train = EncodedDataset(train_split, autoencoder)
         encoded_eval = EncodedDataset(eval_split, autoencoder)
@@ -102,9 +71,7 @@ def train_classification(trial: Trial | None = None) -> None:
             n_workers=user_cfg.n_workers,
         )
 
-    n_classes = get_databuilder().n_classes
     loss = get_classification_loss()
-    accuracy = AggregatedAccuracy(n_classes)
     schema = get_learning_schema(class_cfg)
     builder = Trainer.builder(
         model,
@@ -132,14 +99,6 @@ def train_classification(trial: Trial | None = None) -> None:
     if trial is None:
         trainer.save_checkpoint()
 
-    test = Test(model, loader=eval_loader, metric=accuracy, name='Accuracy')
-    test()
-    ConfusionMatrixEvent(
-        source_name=test.name,
-        model_name=model.name,
-        epoch=model.epoch,
-        matrix=accuracy.confusion_matrix,
-    )
     return
 
 

@@ -9,7 +9,7 @@ from hydra.core import utils as hydra_utils
 import drytorch
 
 from drytorch.core import tracking
-from drytorch.trackers import logging
+from drytorch.trackers import base_classes, logging
 
 from src.config.environment import DEBUG_MODE
 from src.config.specs import ExperimentConfig
@@ -46,6 +46,9 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
     tracking.DEFAULT_TRACKERS.pop(logging.BuiltinLogger.__name__, None)
     drytorch.extend_default_trackers([ClassificationLogger()])
     optional_tracker_list: list[tracking.Tracker] = []
+
+    # a plotter reloads the metrics of earlier sessions through it
+    metric_loader: base_classes.MetricLoader | None = None
     if debug_mode:
         return optional_tracker_list
 
@@ -69,7 +72,8 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
     if cfg_trackers.csv:
         from drytorch.trackers.csv import CSVDumper
 
-        optional_tracker_list.append(CSVDumper())
+        metric_loader = CSVDumper()
+        optional_tracker_list.append(metric_loader)
 
     if cfg_trackers.tensorboard:
         try:
@@ -94,7 +98,9 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             engine_path = cfg.user.path.version_dir / 'metrics.db'
             cfg.user.path.version_dir.mkdir(exist_ok=True)
             engine = sqlalchemy.create_engine(f'sqlite:///{engine_path}')
-            optional_tracker_list.append(SQLConnection(engine=engine))
+            sql_connection = SQLConnection(engine=engine)
+            metric_loader = metric_loader or sql_connection
+            optional_tracker_list.append(sql_connection)
 
     if cfg_trackers.matplotlib:
         try:
@@ -104,7 +110,7 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             warnings.warn(f'Matplotlib not installed, skipping. {e}', stacklevel=2)
 
         else:
-            optional_tracker_list.append(MatPlotter())
+            optional_tracker_list.append(MatPlotter(metric_loader=metric_loader, show=cfg.user.plot.show))
 
     if cfg_trackers.plotly:
         try:
@@ -114,7 +120,7 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             warnings.warn(f'Plotly not installed, skipping. {e}', stacklevel=2)
 
         else:
-            optional_tracker_list.append(PlotlyPlotter())
+            optional_tracker_list.append(PlotlyPlotter(metric_loader=metric_loader, show=cfg.user.plot.show))
 
     return optional_tracker_list
 

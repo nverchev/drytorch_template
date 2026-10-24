@@ -18,7 +18,7 @@ from src.lib import get_encoded_loader, get_loaders
 from src.lib.events import ConfusionMatrixEvent
 from src.lib.models import get_classifier_ema_model, load_autoencoder_model, load_trained_state
 from src.lib.objectives import AggregatedAccuracy
-from src.trackers import get_trackers, save_learning_curves
+from src.trackers import get_trackers
 
 
 def evaluate_classification() -> None:
@@ -59,9 +59,6 @@ def main(cfg: ExperimentConfig) -> None:
 
     with exp.create_run(resume=True, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         evaluate_classification()
-        save_learning_curves(
-            trackers, cfg.classification.model.name, show=cfg.user.plot.show, source_names=('Accuracy',)
-        )
 
     return
 

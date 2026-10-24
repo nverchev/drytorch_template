@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from drytorch import Trainer
 
 from src.config import ExperimentConfig, Experiment, hydra_main
-from src.trackers import get_trackers, save_learning_curves
+from src.trackers import get_trackers
 from src.config.environment import DEBUG_MODE
 from src.module import get_autoencoder
 from src.lib import get_autoencoder_loss, get_learning_schema, get_loaders
@@ -97,8 +97,6 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
 
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_autoencoder()
-        if cfg.autoencoding is not None:
-            save_learning_curves(trackers, cfg.autoencoding.model.name, show=cfg.user.plot.show)
 
     return
 

@@ -132,7 +132,7 @@ def get_classifier() -> BaseClassifier:
         instantiated classifier architecture.
 
     Raises:
-        ValueError: if the configured class_name is not registered.
+        ValueError: if the configured name is not registered.
     """
     exp_cfg = Experiment.get_config()
     cfg = exp_cfg.classification.model
@@ -141,8 +141,8 @@ def get_classifier() -> BaseClassifier:
         Classifiers.LINEAR_CLASSIFIER: LinearClassifier,
     }
 
-    cls = model_map.get(cfg.class_name)
+    cls = model_map.get(cfg.name)
     if cls is None:
-        raise ValueError(f'Unknown classifier model class: {cfg.class_name!r}. Register it in get_classifier().')
+        raise ValueError(f'Unknown classifier model class: {cfg.name!r}. Register it in get_classifier().')
 
     return cls()

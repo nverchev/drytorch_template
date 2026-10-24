@@ -2,5 +2,5 @@ defaults:
   - architecture: linear
   - _self_
 
-class_name: mlp_classifier
+name: mlp_classifier
 ema_decay: 0.999

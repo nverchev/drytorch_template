@@ -94,7 +94,7 @@ def get_classifier_ema_model() -> ClassifierEMAModel:
         get_classifier(),
         decay=class_cfg.model.ema_decay,
         device=cfg.user.device,
-        name=class_cfg.name,
+        name=class_cfg.model.name,
         mixed_precision=class_cfg.train.mixed_precision,
         torch_compile=cfg.user.torch_compile,
     )
@@ -115,7 +115,7 @@ def load_autoencoder_model() -> AutoencoderEMAModel:
         get_autoencoder(),
         decay=ae_cfg.model.ema_decay,
         device=cfg.user.device,
-        name=ae_cfg.name,
+        name=ae_cfg.model.name,
         mixed_precision=ae_cfg.train.mixed_precision,
         torch_compile=cfg.user.torch_compile,
     )

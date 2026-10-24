@@ -42,7 +42,7 @@ def train_autoencoder(trial: Trial | None = None) -> None:
             autoencoder,
             decay=ae_cfg.model.ema_decay,
             device=user_cfg.device,
-            name=ae_cfg.name,
+            name=ae_cfg.model.name,
             mixed_precision=ae_cfg.train.mixed_precision,
             torch_compile=user_cfg.torch_compile,
         )
@@ -50,7 +50,7 @@ def train_autoencoder(trial: Trial | None = None) -> None:
         model = AutoencoderModel(
             autoencoder,
             device=user_cfg.device,
-            name=ae_cfg.name,
+            name=ae_cfg.model.name,
             mixed_precision=ae_cfg.train.mixed_precision,
             torch_compile=user_cfg.torch_compile,
         )
@@ -98,7 +98,7 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_autoencoder()
         if cfg.autoencoding is not None:
-            save_learning_curves(trackers, cfg.autoencoding.name, show=cfg.user.plot.show)
+            save_learning_curves(trackers, cfg.autoencoding.model.name, show=cfg.user.plot.show)
 
     return
 

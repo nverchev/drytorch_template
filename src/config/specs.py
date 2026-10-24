@@ -111,12 +111,12 @@ class ClassifierModelConfig:
     """Classifier model class selector and non-architectural settings.
 
     Attributes:
-        class_name: Which classifier architecture class to instantiate.
+        name: Classifier architecture.
         architecture: Architecture-specific hyperparameters.
         ema_decay: Exponential moving average decay for the EMA model copy.
     """
 
-    class_name: Classifiers
+    name: Classifiers
     architecture: LinearArchitectureConfig
     ema_decay: float
 
@@ -126,12 +126,12 @@ class AutoencoderModelConfig:
     """Autoencoder model class selector and non-architectural settings.
 
     Attributes:
-        class_name: Which autoencoder architecture class to instantiate.
+        name: Autoencoder architecture.
         architecture: Architecture-specific hyperparameters.
         ema_decay: Exponential moving average decay for the EMA model copy.
     """
 
-    class_name: Autoencoders
+    name: Autoencoders
     architecture: AutoencoderArchitectureConfig
     ema_decay: float
 
@@ -318,12 +318,10 @@ class PhaseConfig:
     """Specification for a single phase.
 
     Attributes:
-        name: Name of the phase.
         model: Model and architecture configuration.
         train: Training loop and learning schedule configuration.
     """
 
-    name: str
     model: ClassifierModelConfig | AutoencoderModelConfig
     train: TrainingConfig
 
@@ -333,7 +331,6 @@ class ClassificationConfig(PhaseConfig):
     """Specification for the classifier phase.
 
     Attributes:
-        name: Name of the phase.
         model: Classifier model and architecture configuration.
         train: Training loop and learning schedule configuration.
     """
@@ -346,7 +343,6 @@ class AutoencodingConfig(PhaseConfig):
     """Specification for the autoencoder phase.
 
     Attributes:
-        name: Name of the phase.
         model: Autoencoder model and architecture configuration.
         train: Training loop and learning schedule configuration.
     """

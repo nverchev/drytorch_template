@@ -1,6 +1,4 @@
 defaults:
   - train: train
-  - model: model
+  - model: mlp
   - _self_
-
-name: classification

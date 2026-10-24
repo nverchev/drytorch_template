@@ -24,8 +24,9 @@ def save_learning_curves(
     """Save the learning curves of a model that the plotting trackers recorded.
 
     Each plotting tracker (matplotlib, plotly) writes one figure per metric in the
-    folder of the run; with ``show``, matplotlib also opens all the metrics in one
-    window and plotly opens each figure in the browser. Other trackers are skipped.
+    folder of the run, and one figure of bars for the tests among the sources; with
+    ``show``, matplotlib also opens all the metrics in one window and plotly opens
+    each figure in the browser. Other trackers are skipped.
 
     Args:
         trackers: the trackers of the run.

@@ -2,5 +2,5 @@ defaults:
   - architecture: cnn_ae
   - _self_
 
-class_name: cnn_res_autoencoder
+name: cnn_res_autoencoder
 ema_decay: 0.9

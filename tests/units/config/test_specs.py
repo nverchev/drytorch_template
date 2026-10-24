@@ -106,10 +106,8 @@ class TestAutoencodingConfig:
         """Inherit phase fields from PhaseConfig."""
         cfg = hydra.get_experiment_config('signal_classifier')
         ae_cfg = AutoencodingConfig(
-            name='autoencoder',
             model=cfg.autoencoding.model,
             train=cfg.classification.train,
         )
 
         assert isinstance(ae_cfg, PhaseConfig)
-        assert ae_cfg.name == 'autoencoder'

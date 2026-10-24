@@ -85,8 +85,8 @@ The YAML hierarchy is symmetrical to the Pydantic dataclasses in
 
 | YAML folder | Pydantic attribute | Example setting |
 | --- | --- | --- |
-| `classification/` | `ExperimentConfig.classification` | `classification.name` |
-| `classification/model/` | `classification.model` | `classification.model.class_name` |
+| `classification/` | `ExperimentConfig.classification` | `classification.train.n_epochs` |
+| `classification/model/` | `classification.model` | `classification.model.name` |
 | `classification/train/learn/` | `classification.train.learn` | `classification.train.learn.lr` |
 
 ### Entry configurations
@@ -193,7 +193,7 @@ how its autoencoder was trained.
 
 ### Train and evaluate
 
-The training scripts only train and save the models; the evaluation script loads the classifier and tests it on the validation split, or on the test split with `final=true`.
+`evaluate_classifier.py` tests the trained classifier on the validation split, or on the test split with `final=true`.
 
 ```console
 uv run train_classifier.py

@@ -50,7 +50,7 @@ def train_classification(trial: Trial | None = None) -> None:
         model = ClassifierModel(
             get_classifier(),
             device=user_cfg.device,
-            name=class_cfg.name,
+            name=class_cfg.model.name,
             mixed_precision=class_cfg.train.mixed_precision,
             torch_compile=user_cfg.torch_compile,
         )
@@ -113,7 +113,7 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
 
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_classification()
-        save_learning_curves(trackers, cfg.classification.name, show=cfg.user.plot.show)
+        save_learning_curves(trackers, cfg.classification.model.name, show=cfg.user.plot.show)
 
     return
 

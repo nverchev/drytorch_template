@@ -201,6 +201,6 @@ class AggregatedAccuracy(Objective[Tensor, Targets]):
         support = total_by_class > 0  # exclude classes with no samples
         metrics = {'MacroAccuracy': per_class[support].mean()}
         for i in range(self.n_classes):
-            metrics[f'Accuracy_Class_{i}'] = per_class[i]
+            metrics[f'Class{i}Accuracy'] = per_class[i]
 
         return metrics

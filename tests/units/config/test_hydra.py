@@ -13,7 +13,7 @@ class TestHydraHelpers:
 
         cfg = get_experiment_config()
 
-        assert cfg.classification.name == 'classification'
+        assert cfg.classification.model.name == 'mlp_classifier'
         assert cfg.user.device == 'auto'
 
     def test_get_experiment_config_with_overrides(self, mocker) -> None:
@@ -34,8 +34,8 @@ class TestHydraHelpers:
 
         assert cfg.autoencoding is not None
         assert isinstance(cfg.autoencoding, specs.AutoencodingConfig)
-        assert cfg.autoencoding.model.class_name == options.Autoencoders.CNN_RES_AUTOENCODER
-        assert cfg.classification.model.class_name == options.Classifiers.LINEAR_CLASSIFIER
+        assert cfg.autoencoding.model.name == options.Autoencoders.CNN_RES_AUTOENCODER
+        assert cfg.classification.model.name == options.Classifiers.LINEAR_CLASSIFIER
         assert cfg.user.hydra.config_name == 'signal_classifier'
         assert cfg.par_dir == cfg.user.path.version_dir / 'signal_classifier'
 

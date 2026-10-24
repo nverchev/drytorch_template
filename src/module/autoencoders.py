@@ -153,8 +153,8 @@ def get_autoencoder() -> BaseAutoencoder:
         Autoencoders.CNN_RES_AUTOENCODER: CNNResAutoencoder,
     }
 
-    cls = model_map.get(cfg.class_name)
+    cls = model_map.get(cfg.name)
     if cls is None:
-        raise ValueError(f'Unknown autoencoder model class: {cfg.class_name!r}. Register it in get_autoencoder().')
+        raise ValueError(f'Unknown autoencoder model class: {cfg.name!r}. Register it in get_autoencoder().')
 
     return cls()

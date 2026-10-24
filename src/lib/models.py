@@ -56,7 +56,7 @@ class AutoencoderModel(Model[Inputs, AutoencodingOutputs]):
             inputs: input batch containing signal features.
 
         Returns:
-            latent representation tensor, in full precision.
+            latent representation tensor, in full precision ``(B, latent_dim)``.
         """
         with self._autocast():
             return self.module.encode(inputs).float()
@@ -80,7 +80,7 @@ class AutoencoderEMAModel(EMAModel[Inputs, AutoencodingOutputs], AutoencoderMode
             inputs: input batch containing signal features.
 
         Returns:
-            latent representation tensor.
+            latent representation tensor ``(B, latent_dim)``.
         """
         with self._autocast():
             return self.averaged_module.encode(inputs).float()

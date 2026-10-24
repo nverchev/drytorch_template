@@ -32,8 +32,8 @@ class DataSplit(Dataset[tuple[Inputs, Targets]]):
 
     Attributes:
         augment: Augmentation callable applied to features during training.
-        features: Feature tensor of the partition.
-        labels: Label tensor of the partition.
+        features: Feature tensor of the partition ``(N, in_features)``.
+        labels: Label tensor of the partition ``(N,)``.
     """
 
     augment: Final[Callable[[torch.Tensor], torch.Tensor]]
@@ -44,8 +44,8 @@ class DataSplit(Dataset[tuple[Inputs, Targets]]):
         """Initialize.
 
         Args:
-            features: feature tensor of the partition.
-            labels: label tensor of the partition.
+            features: feature tensor of the partition ``(N, in_features)``.
+            labels: label tensor of the partition ``(N,)``.
         """
         super().__init__()
         self.augment = get_augmenter()

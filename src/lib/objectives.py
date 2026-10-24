@@ -98,7 +98,7 @@ class ConfusionMatrixAccumulator(AbstractAccumulator[Tensor, Tensor]):
     """Custom accumulator for confusion matrices.
 
     Attributes:
-        matrix: total counts by label (rows) and prediction (columns).
+        matrix: total counts by label (rows) and prediction (columns) ``(n_classes, n_classes)``.
     """
 
     matrix: Tensor
@@ -107,7 +107,7 @@ class ConfusionMatrixAccumulator(AbstractAccumulator[Tensor, Tensor]):
         """Initialize.
 
         Args:
-            matrix: counts of a batch, with labels on the rows.
+            matrix: counts of a batch, with labels on the rows ``(n_classes, n_classes)``.
         """
         self.matrix = matrix
         return
@@ -158,7 +158,7 @@ class AggregatedAccuracy(Objective[Tensor, Targets]):
 
     @property
     def confusion_matrix(self) -> Tensor:
-        """Counts of the last computed evaluation, labels on the rows.
+        """Counts of the last computed evaluation, labels on the rows ``(n_classes, n_classes)``.
 
         Raises:
             ValueError: if the metrics have not been computed yet.

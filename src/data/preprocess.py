@@ -19,9 +19,9 @@ class Preprocessor:
     reuse them, so that evaluation sees the same scaling as training.
 
     Attributes:
-        mean: Mean of each feature of the training data.
+        mean: Mean of each feature of the training data ``(1, in_features)``.
         normalize: Whether the features are scaled.
-        std: Standard deviation of each feature of the training data.
+        std: Standard deviation of each feature of the training data ``(1, in_features)``.
     """
 
     normalize: Final[bool]
@@ -40,10 +40,10 @@ class Preprocessor:
         """Scale the features with the statistics of the training data.
 
         Args:
-            features: features of one split.
+            features: features of one split ``(N, in_features)``.
 
         Returns:
-            The scaled features, or the original ones when not normalizing.
+            The scaled features, or the original ones when not normalizing ``(N, in_features)``.
         """
         if not self.normalize:
             return features
@@ -54,7 +54,7 @@ class Preprocessor:
         """Take the statistics from the training features.
 
         Args:
-            features: features of the training data.
+            features: features of the training data ``(N, in_features)``.
         """
         self.mean = features.mean(dim=0, keepdim=True)
         self.std = features.std(dim=0, keepdim=True)

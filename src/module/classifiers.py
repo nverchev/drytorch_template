@@ -49,7 +49,7 @@ class BaseClassifier(nn.Module, abc.ABC):
             inputs: input batch containing features.
 
         Returns:
-            model outputs.
+            model outputs ``(B, n_classes)``.
         """
 
 
@@ -85,7 +85,7 @@ class MLPClassifier(BaseClassifier):
             inputs: input batch containing features.
 
         Returns:
-            model outputs containing logits.
+            model outputs containing logits ``(B, n_classes)``.
         """
         return self.layers(inputs.features)
 
@@ -120,7 +120,7 @@ class LinearClassifier(BaseClassifier):
             inputs: input batch containing features.
 
         Returns:
-            model outputs containing class logits.
+            model outputs containing class logits ``(B, n_classes)``.
         """
         return self.head(self.norm(inputs.features))
 

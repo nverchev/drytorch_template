@@ -19,7 +19,7 @@ class ConfusionMatrixEvent(log_events.Event):
         source_name: Name of the runner that evaluated the model.
         model_name: Name of the evaluated model.
         epoch: Epoch of the evaluated weights.
-        matrix: Counts of shape ``(n_classes, n_classes)``, labels on the rows.
+        matrix: Counts, labels on the rows ``(n_classes, n_classes)``.
     """
 
     source_name: str

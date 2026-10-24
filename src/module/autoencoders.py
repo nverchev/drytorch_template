@@ -101,7 +101,7 @@ class CNNResAutoencoder(BaseAutoencoder):
             inputs: input batch containing signal features or raw feature tensor.
 
         Returns:
-            latent representation tensor.
+            latent representation tensor ``(B, latent_dim)``.
         """
         features = inputs.features if isinstance(inputs, Inputs) else inputs
         if features.ndim == 2:
@@ -114,10 +114,10 @@ class CNNResAutoencoder(BaseAutoencoder):
         """Decode latent representations back into signal waveforms.
 
         Args:
-            z: latent representation tensor.
+            z: latent representation tensor ``(B, latent_dim)``.
 
         Returns:
-            reconstructed signal waveform tensor.
+            reconstructed signal waveform tensor ``(B, in_dim, sequence_length)``.
         """
         return self.decoder(z)
 

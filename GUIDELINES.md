@@ -70,6 +70,8 @@ document the experiment.
   `n_subprocesses`, so changing execution resources does not alter training dynamics.
 - Leave the seed unset by default (`seed:` in `user/user.yaml`), and set it for
   the runs that must be repeatable.
+- Do not load `Experiment` in `src/utils/`: utilities receive any settings and
+  paths as arguments.
 
 ### File names
 
@@ -141,6 +143,14 @@ each phase using the ones before it.
   to STYLE rules: Arrange-Act-Assert layout, tests concluding directly on
   assertions rather than returning, and behavior-focused docstrings.
 - Maintain a consistent coding and documentation style across the project.
+- Give the shape of each tensor in docstrings, after its description. Name the
+  dimensions as the code names them, with `B` for a batch and `N` for a whole
+  split:
+
+  ```python
+  Args:
+      features: connections above the diagonal ``(B, n_features)``.
+  ```
 
 ### Tests
 

@@ -42,8 +42,8 @@ class Targets(NamedTuple):
     """Ground-truth labels consumed by the loss.
 
     Attributes:
-        label: Long tensor ``(B,)`` with class indices in ``[0, n_classes)``.
-        features: Target features for autoencoder reconstruction.
+        label: Long tensor with class indices in ``[0, n_classes)`` ``(B,)``.
+        features: Target features for autoencoder reconstruction ``(B, in_features)``.
     """
 
     label: torch.Tensor
@@ -60,7 +60,7 @@ class AutoencodingOutputs:
     """Autoencoder outputs consumed by the reconstruction loss.
 
     Attributes:
-        reconstruction: Reconstructed features.
+        reconstruction: Reconstructed features ``(B, in_features)``.
         encodings: Latent representations ``(B, latent_dim)``.
     """
 

@@ -8,8 +8,6 @@ Usage::
     uv run evaluate_classifier.py --config-name signal_classifier
 """
 
-from typing import cast
-
 from drytorch import Test
 
 from src.config import ExperimentConfig, Experiment, hydra_main
@@ -39,13 +37,14 @@ def evaluate_classification() -> None:
         encoded_eval = EncodedDataset(eval_split, load_autoencoder_model())
         eval_loader = get_encoded_loader(encoded_eval, batch_size=class_cfg.train.batch_size_per_device)
 
-    test = Test(model, loader=eval_loader, metric=AggregatedAccuracy(get_databuilder().n_classes), name='Accuracy')
+    accuracy = AggregatedAccuracy(get_databuilder().n_classes)
+    test = Test(model, loader=eval_loader, metric=accuracy, name='Accuracy')
     test()
     ConfusionMatrixEvent(
         source_name=test.name,
         model_name=model.name,
         epoch=model.epoch,
-        matrix=cast(AggregatedAccuracy, test.objective).confusion_matrix,
+        matrix=accuracy.confusion_matrix,
     )
     return
 

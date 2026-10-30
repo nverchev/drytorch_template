@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 
 from src.config.experiment import Experiment
+from src.config.torch import ActClass, NormClass
 from src.config.options import Classifiers
 from src.data.dataset import get_databuilder
 from src.data.structures import Inputs
@@ -57,24 +58,28 @@ class MLPClassifier(BaseClassifier):
     """Feedforward MLP: in_features → hidden_dims → n_classes.
 
     Attributes:
+        hidden_dims: Hidden layer dimensions before the output projection.
+        dropout_rate: Dropout probability between the hidden layers.
+        act_cls: Activation of the hidden layers.
+        norm_cls: Normalization of the hidden layers.
         layers: Sequence of linear layers and optional dropout.
     """
 
+    hidden_dims: Final[tuple[int, ...]]
+    dropout_rate: Final[float]
+    act_cls: Final[ActClass]
+    norm_cls: Final[NormClass]
     layers: Final[nn.Sequential]
 
     def __init__(self) -> None:
         """Initialize."""
         super().__init__()
-        cfg = Experiment.get_config()
-        arch = cfg.classification.model.architecture
-        dims = (self.in_dim, *arch.hidden_dims)
-        self.layers = nn.Sequential()
-        for in_dim, out_dim in itertools.pairwise(dims):
-            self.layers.append(LinearLayer(in_dim, out_dim, act_cls=arch.act_cls, norm_cls=arch.norm_cls))
-            if arch.dropout_rate > 0:
-                self.layers.append(nn.Dropout(arch.dropout_rate))
-
-        self.layers.append(LinearLayer(dims[-1], self.n_classes))
+        arch = Experiment.get_config().classification.model.architecture
+        self.hidden_dims = arch.hidden_dims
+        self.dropout_rate = arch.dropout_rate
+        self.act_cls = arch.act_cls
+        self.norm_cls = arch.norm_cls
+        self.layers = self._get_layers()
         return
 
     @override
@@ -88,6 +93,17 @@ class MLPClassifier(BaseClassifier):
             model outputs containing logits ``(B, n_classes)``.
         """
         return self.layers(inputs.features)
+
+    def _get_layers(self) -> nn.Sequential:
+        dims = (self.in_dim, *self.hidden_dims)
+        layers = nn.Sequential()
+        for in_dim, out_dim in itertools.pairwise(dims):
+            layers.append(LinearLayer(in_dim, out_dim, act_cls=self.act_cls, norm_cls=self.norm_cls))
+            if self.dropout_rate > 0:
+                layers.append(nn.Dropout(self.dropout_rate))
+
+        layers.append(LinearLayer(dims[-1], self.n_classes))
+        return layers
 
 
 class LinearClassifier(BaseClassifier):

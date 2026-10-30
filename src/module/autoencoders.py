@@ -9,6 +9,7 @@ import torch.nn as nn
 
 from src.config.experiment import Experiment
 from src.config.options import Autoencoders
+from src.config.torch import ActClass, NormClass
 from src.data.structures import AutoencodingOutputs, Inputs
 from src.module.layers import Conv1DResBlock, LinearLayer
 
@@ -26,11 +27,17 @@ class BaseAutoencoder(nn.Module, abc.ABC):
         in_dim: Number of input signal channels.
         sequence_length: Length of the signal sequence.
         latent_dim: Bottleneck dimension of the latent encodings.
+        hidden_dims: Channels of the hidden layers.
+        act_cls: Activation of the layers.
+        norm_cls: Normalization of the layers.
     """
 
     in_dim: Final[int]
     sequence_length: Final[int]
     latent_dim: Final[int]
+    hidden_dims: Final[tuple[int, ...]]
+    act_cls: Final[ActClass]
+    norm_cls: Final[NormClass]
 
     def __init__(self) -> None:
         """Initialize."""
@@ -44,7 +51,11 @@ class BaseAutoencoder(nn.Module, abc.ABC):
 
         self.in_dim = exp_cfg.data.dataset.in_features
         self.sequence_length = exp_cfg.data.dataset.sequence_length
-        self.latent_dim = exp_cfg.autoencoding.model.architecture.latent_dim
+        arch = exp_cfg.autoencoding.model.architecture
+        self.latent_dim = arch.latent_dim
+        self.hidden_dims = arch.hidden_dims
+        self.act_cls = arch.act_cls
+        self.norm_cls = arch.norm_cls
         return
 
     @abc.abstractmethod
@@ -74,23 +85,8 @@ class CNNResAutoencoder(BaseAutoencoder):
     def __init__(self) -> None:
         """Initialize."""
         super().__init__()
-        exp_cfg = Experiment.get_config()
-        if exp_cfg.autoencoding is None:
-            raise ValueError('Autoencoding configuration is missing.')
-
-        arch = exp_cfg.autoencoding.model.architecture
-        enc_dims = [self.in_dim, *arch.hidden_dims]
-        self.encoder = nn.Sequential(
-            Conv1DResBlock(enc_dims, act_cls=arch.act_cls, norm_cls=arch.norm_cls),
-            nn.Flatten(),
-            LinearLayer(enc_dims[-1] * self.sequence_length, self.latent_dim),
-        )
-        dec_dims = [*reversed(arch.hidden_dims), self.in_dim]
-        self.decoder = nn.Sequential(
-            LinearLayer(self.latent_dim, arch.hidden_dims[-1] * self.sequence_length),
-            nn.Unflatten(1, (arch.hidden_dims[-1], self.sequence_length)),
-            Conv1DResBlock(dec_dims, act_cls=arch.act_cls, norm_cls=arch.norm_cls),
-        )
+        self.encoder = self._get_encoder()
+        self.decoder = self._get_decoder()
         return
 
     @override
@@ -133,6 +129,22 @@ class CNNResAutoencoder(BaseAutoencoder):
         """
         encodings = self.encode(inputs)
         return AutoencodingOutputs(self.decode(encodings), encodings)
+
+    def _get_decoder(self) -> nn.Sequential:
+        dec_dims = [*reversed(self.hidden_dims), self.in_dim]
+        return nn.Sequential(
+            LinearLayer(self.latent_dim, self.hidden_dims[-1] * self.sequence_length),
+            nn.Unflatten(1, (self.hidden_dims[-1], self.sequence_length)),
+            Conv1DResBlock(dec_dims, act_cls=self.act_cls, norm_cls=self.norm_cls),
+        )
+
+    def _get_encoder(self) -> nn.Sequential:
+        enc_dims = [self.in_dim, *self.hidden_dims]
+        return nn.Sequential(
+            Conv1DResBlock(enc_dims, act_cls=self.act_cls, norm_cls=self.norm_cls),
+            nn.Flatten(),
+            LinearLayer(enc_dims[-1] * self.sequence_length, self.latent_dim),
+        )
 
 
 def get_autoencoder() -> BaseAutoencoder:

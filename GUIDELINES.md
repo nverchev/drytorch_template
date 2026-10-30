@@ -42,11 +42,12 @@ not the flattening or the activation between them.
 ### Model settings
 
 - Give every role in the model (an encoder, a decoder, a classifier) an
-  abstract base class, such as `BaseDecoder`, that reads the settings all its
-  implementations use and stores them as public `Final` attributes. An
-  implementation, such as `MyDecoder`, reads only the settings it adds and
-  builds its layers from the stored ones. `BaseArchitecture` in
-  `src/module/architectures.py` does this for the classifiers.
+  abstract base class. The base class reads
+  the settings relevant for its role and stores them as `Final` attributes, while
+  the implementations actually create layers. 
+- Keep `__init__` short: create each block of layers in a private method, such
+  as `_get_layers`, even when the block is simple. `__init__` then lists the
+  blocks in order, and a subclass can override one of them.
 - Layers do not read the configuration: the module that builds them passes
   their settings, the activation and the normalization included, as
   arguments.

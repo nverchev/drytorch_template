@@ -95,8 +95,8 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             warnings.warn(f'SQLAlchemy not installed, skipping. {e}', stacklevel=2)
 
         else:
-            engine_path = cfg.user.path.version_dir / 'metrics.db'
-            cfg.user.path.version_dir.mkdir(exist_ok=True)
+            engine_path = cfg.par_dir / 'metrics.db'
+            cfg.par_dir.mkdir(exist_ok=True, parents=True)
             engine = sqlalchemy.create_engine(f'sqlite:///{engine_path}')
             sql_connection = SQLConnection(engine=engine)
             metric_loader = metric_loader or sql_connection

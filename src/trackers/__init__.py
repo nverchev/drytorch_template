@@ -5,11 +5,12 @@ only when the dependency is installed.
 """
 
 from src.trackers.logging import ClassificationLogger
-from src.trackers.setup import get_trackers, set_tuning_logging
+from src.trackers.setup import get_metric_database, get_trackers, set_tuning_logging
 
 
 __all__ = [
     'ClassificationLogger',
+    'get_metric_database',
     'get_trackers',
     'set_tuning_logging',
 ]

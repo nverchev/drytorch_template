@@ -388,6 +388,9 @@ uv run evaluate_classifier.py --config-name signal_classifier final=true
 
 ## Projects using this template
 
+- **[FC_counterfactuals](https://github.com/nverchev/FC_counterfactuals)**: counterfactual functional connectomes to compare neurological classifiers.
 - **[PCGen](https://github.com/nverchev/PCGen)**: point cloud generation with two models trained in sequence, and visualization through training hooks and custom events.
+- **[PointCloudCounterfactual](https://github.com/nverchev/PointCloudCounterfactual)**: counterfactual explanations for point cloud classifiers, with a two-stage generative model.
 - **[SurfaceVAE](https://github.com/nverchev/SurfaceVAE)**: mesh autoencoder with an annealed loss.
 - **[VAEX](https://github.com/nverchev/VAEX)**: visual counterfactuals with a pipeline for complex evaluation in explainable AI (XAI).
+- **[VAEXMnist](https://github.com/nverchev/VAEXMnist)**: VAEX counterfactuals on MNIST, auditing whether explanations edit true semantic features.
